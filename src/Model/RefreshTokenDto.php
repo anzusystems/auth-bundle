@@ -29,7 +29,7 @@ final class RefreshTokenDto implements Stringable
 
     public function __construct()
     {
-        $this->tokenHashPlain = $tokenHashPlain ?? bin2hex(random_bytes(32));
+        $this->tokenHashPlain = bin2hex(random_bytes(32));
         $this->issuedAt = new DateTimeImmutable();
     }
 

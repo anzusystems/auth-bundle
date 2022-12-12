@@ -21,7 +21,9 @@ final class OAuth2TokenResponseDto
     public function __construct(string $accessToken, string $refreshToken)
     {
         try {
-            $this->accessToken = (new Parser(new JoseEncoder()))->parse($accessToken);
+            /** @var Plain $token */
+            $token = (new Parser(new JoseEncoder()))->parse($accessToken);
+            $this->accessToken = $token;
             $this->refreshToken = $refreshToken;
         } catch (Throwable $exception) {
             throw InvalidJwtException::create($accessToken, $exception);

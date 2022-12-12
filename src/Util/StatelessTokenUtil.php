@@ -21,6 +21,9 @@ final class StatelessTokenUtil
         ));
     }
 
+    /**
+     * @param non-empty-string $hash
+     */
     public function isValidForRequest(Request $request, string $hash): bool
     {
         $token = $this->createPlainForRequest($request);
@@ -28,6 +31,9 @@ final class StatelessTokenUtil
         return password_verify($token, base64_decode($hash, strict: true));
     }
 
+    /**
+     * @param non-empty-string $hash
+     */
     public function isNotValidForRequest(Request $request, string $hash): bool
     {
         return false === $this->isValidForRequest($request, $hash);

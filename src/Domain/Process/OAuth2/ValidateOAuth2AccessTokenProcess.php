@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AnzuSystems\AuthBundle\Domain\Process;
+namespace AnzuSystems\AuthBundle\Domain\Process\OAuth2;
 
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
@@ -31,11 +31,15 @@ final class ValidateOAuth2AccessTokenProcess
      */
     public function execute(Plain $token): void
     {
+        if (empty($this->OAuth2Configuration->getSsoPublicCert())) {
+            throw new InvalidJwtException('Please configure SSO public certificate.');
+        }
+
         $constraints = [
             new PermittedFor($this->OAuth2Configuration->getSsoClientId()),
-            new RelatedTo($token->claims()->get(RegisteredClaims::SUBJECT)),
+            new RelatedTo((string) $token->claims()->get(RegisteredClaims::SUBJECT)),
             new SignedWith(
-                JwtAlgorithm::from($token->headers()->get('alg'))->signer(),
+                JwtAlgorithm::from((string) $token->headers()->get('alg'))->signer(),
                 InMemory::plainText($this->OAuth2Configuration->getSsoPublicCert())
             ),
             new LooseValidAt(SystemClock::fromUTC()),

@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Domain\Process;
 
 use AnzuSystems\AuthBundle\Contracts\RefreshTokenStorageInterface;
-use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
 use AnzuSystems\AuthBundle\Exception\InvalidRefreshTokenException;
-use AnzuSystems\AuthBundle\Exception\MissingConfigurationException;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
+use Exception;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,19 +22,19 @@ final class RefreshTokenProcess
     }
 
     /**
-     * @throws MissingConfigurationException
-     * @throws InvalidJwtException
+     * @throws Exception
      */
-    public function execute(Request $request, JsonResponse $response = null): JsonResponse
+    public function execute(Request $request, Response $response = null): Response
     {
         $response ??= new JsonResponse();
         try {
             [$userId, $tokenHash] = $this->httpUtil->grabRefreshTokenFromRequest($request);
         } catch (InvalidRefreshTokenException) {
-            return $response
-                ->setStatusCode(Response::HTTP_UNAUTHORIZED)
-                ->setData(['message' => 'unauthorized'])
-            ;
+            if ($response instanceof JsonResponse) {
+                $response->setData(['message' => 'unauthorized']);
+            }
+
+            return $response->setStatusCode(Response::HTTP_UNAUTHORIZED);
         }
         $deviceId = $this->httpUtil->grabDeviceIdFromRequest($request);
 
@@ -43,9 +42,10 @@ final class RefreshTokenProcess
             return $this->grantAccessOnResponseProcess->execute($userId, $request, $response);
         }
 
-        return $response
-            ->setStatusCode(Response::HTTP_BAD_REQUEST)
-            ->setData(['message' => 'unable_to_refresh'])
-        ;
+        if ($response instanceof JsonResponse) {
+            $response->setData(['message' => 'unable_to_refresh']);
+        }
+
+        return $response->setStatusCode(Response::HTTP_BAD_REQUEST);
     }
 }

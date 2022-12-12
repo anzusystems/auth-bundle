@@ -29,7 +29,7 @@ final class RedisRefreshTokenStorage implements RefreshTokenStorageInterface
         $refreshToken = $this->storageRedis->get(
             $this->getUserDeviceKey($userId, $deviceId)
         );
-        if (empty($refreshToken)) {
+        if (empty($refreshToken) || false === is_string($refreshToken)) {
             return false;
         }
         $refreshTokenDto = $this->serializer->deserialize($refreshToken, RefreshTokenDto::class);

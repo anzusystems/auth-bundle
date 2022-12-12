@@ -7,8 +7,6 @@ namespace AnzuSystems\AuthBundle\Domain\Process;
 use AnzuSystems\AuthBundle\Configuration\CookieConfiguration;
 use AnzuSystems\AuthBundle\Configuration\JwtConfiguration;
 use AnzuSystems\AuthBundle\Contracts\RefreshTokenStorageInterface;
-use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
-use AnzuSystems\AuthBundle\Exception\MissingConfigurationException;
 use AnzuSystems\AuthBundle\Model\DeviceDto;
 use AnzuSystems\AuthBundle\Model\RefreshTokenDto;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
@@ -31,8 +29,6 @@ final class GrantAccessOnResponseProcess
     }
 
     /**
-     * @throws MissingConfigurationException
-     * @throws InvalidJwtException
      * @throws Exception
      */
     public function execute(string $userId, Request $request, Response $response = null): Response

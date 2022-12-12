@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Controller\Api;
 
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
-use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
-use AnzuSystems\AuthBundle\Exception\MissingConfigurationException;
 use AnzuSystems\CommonBundle\Controller\AbstractAnzuApiController;
+use Exception;
 use OpenApi\Attributes as OA;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -26,11 +25,10 @@ abstract class AbstractAuthController extends AbstractAnzuApiController
     }
 
     /**
-     * @throws MissingConfigurationException
-     * @throws InvalidJwtException
+     * @throws Exception
      */
     #[Route('refresh-token', name: 'refresh_token', methods: [Request::METHOD_POST, Request::METHOD_GET])]
-    public function refreshToken(Request $request): JsonResponse
+    public function refreshToken(Request $request): Response
     {
         return $this->refreshTokenProcess->execute($request);
     }

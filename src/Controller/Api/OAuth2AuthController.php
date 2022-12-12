@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Controller\Api;
 
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
-use AnzuSystems\AuthBundle\Domain\Process\GrantAccessByOAuth2TokenProcess;
+use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
-use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
-use AnzuSystems\AuthBundle\Exception\MissingConfigurationException;
-use AnzuSystems\AuthBundle\Exception\UnsuccessfulOAuth2RequestException;
 use AnzuSystems\AuthBundle\Util\StatelessTokenUtil;
+use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use OpenApi\Attributes as OA;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -43,14 +41,12 @@ final class OAuth2AuthController extends AbstractAuthController
     }
 
     /**
-     * @throws UnsuccessfulOAuth2RequestException
-     * @throws MissingConfigurationException
-     * @throws InvalidJwtException
+     * @throws SerializerException
      */
     #[Route('authorize', name: 'authorize', methods: [Request::METHOD_GET])]
     public function callbackAuthorize(Request $request): Response
     {
-        $hash = $request->query->get('state');
+        $hash = (string) $request->query->get('state');
         if (empty($hash) || $this->statelessTokenUtil->isNotValidForRequest($request, $hash)) {
             throw $this->createAccessDeniedException('Invalid state token.');
         }

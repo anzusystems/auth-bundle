@@ -1,4 +1,5 @@
 #!/bin/bash
+# Script used to run the security check inside the docker container
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 cd "${PROJECT_ROOT}" || exit 1

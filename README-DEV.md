@@ -28,21 +28,21 @@ Rebuild app from ground up:
 
     bin/build
 
-# Commands
+# Scripts
 
-Commands available in the project.
+Scripts available in the project.
 
 ## Bash
 
-Command used to run bash inside the docker container:
+Script used to run bash inside the docker container:
 
     bin/bash
 
 Execute `bin/bash -h` for all bash containers and options.
 
-## Build command
+## Build
 
-Command used to build the project.
+Script used to build the project.
 
     bin/build
 
@@ -50,15 +50,15 @@ Execute `bin/build -h` for all build options.
 
 ## Clear cache
 
-Command used to clear all cache on local environment:
+Script used to clear all cache on local environment:
 
     bin/cc
 
 Execute `bin/cc -h` for all options.
 
-## Docker-compose command wrapper
+## Docker-compose script wrapper
 
-Wrapper command used to run `docker-compose`:
+Wrapper script used to run `docker-compose`:
 
     bin/docker-compose
 
@@ -66,32 +66,32 @@ Options:
 
 - see [the official docker-compose docu][docker-compose-overview] for all options
 
-Command will:
+Script will:
 
 - setup correct permissions for the user if needed (sync UID and GID in docker container with host user, etc.)
 - run `docker-compose` command
 
 ## ECS - Coding style fixer
 
-Command used to run the coding style fixer:
+Script used to run the coding style fixer:
 
     bin/ecs
 
 ## PSALM - Static analyses
 
-Command used to run the static analyses:
+Script used to run the static analyses:
 
     bin/psalm
 
 ## Security
 
-Command used to run the tests inside the docker container:
+Script used to run the security check inside the docker container:
 
     bin/security
 
 ## Test
 
-Command used to run Unit tests inside the docker container:
+Script used to run Unit tests inside the docker container:
 
     bin/test
 

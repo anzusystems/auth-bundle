@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<psalm
+    resolveFromConfigFile="true"
+    findUnusedVariablesAndParams="true"
+    usePhpDocMethodsWithoutMagicCall="true"
+    allowStringToStandInForClass="false"
+    memoizeMethodCallResults="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <directory name="src"/>
+        <ignoreFiles>
+            <directory name="./vendor"/>
+            <directory name="./var"/>
+            <file name="ecs.php"/>
+            <file name="src/DependencyInjection/Configuration.php"/>
+        </ignoreFiles>
+    </projectFiles>
+
+    <issueHandlers>
+        <MoreSpecificImplementedParamType errorLevel="suppress"/>
+        <UnnecessaryVarAnnotation errorLevel="suppress"/> <!-- PHPStorm doesn't understand to generics annotations yet -->
+
+        <UnusedFunctionCall>
+            <errorLevel type="suppress">
+                <referencedFunction name="array_map"/>
+            </errorLevel>
+        </UnusedFunctionCall>
+
+        <PossiblyUndefinedMethod>
+            <errorLevel type="suppress">
+                <referencedMethod name="Symfony\Component\Config\Definition\Builder\NodeParentInterface::end"/>
+                <referencedMethod name="Symfony\Component\Config\Definition\Builder\NodeDefinition::children"/>
+                <referencedMethod name="Symfony\Component\Config\Definition\Builder\NodeDefinition::canbeenabled"/>
+            </errorLevel>
+        </PossiblyUndefinedMethod>
+
+        <!-- level 3 issues - slightly lazy code writing, but provably low false-negatives -->
+
+        <DeprecatedMethod errorLevel="info"/>
+        <DeprecatedProperty errorLevel="info"/>
+        <DeprecatedClass errorLevel="info"/>
+        <DeprecatedConstant errorLevel="info"/>
+        <DeprecatedFunction errorLevel="info"/>
+        <DeprecatedInterface errorLevel="info"/>
+        <DeprecatedTrait errorLevel="info"/>
+
+        <InternalMethod errorLevel="info"/>
+        <InternalProperty errorLevel="info"/>
+        <InternalClass errorLevel="info"/>
+
+        <InvalidDocblock errorLevel="info"/>
+
+        <RedundantCast errorLevel="suppress"/>
+        <RedundantCastGivenDocblockType errorLevel="suppress"/>
+        <PropertyNotSetInConstructor errorLevel="suppress"/>
+        <MissingConstructor errorLevel="info"/>
+
+        <DocblockTypeContradiction errorLevel="info"/>
+        <RedundantConditionGivenDocblockType errorLevel="info"/>
+
+        <UnresolvableInclude errorLevel="info"/>
+
+        <InvalidStringClass errorLevel="info"/>
+    </issueHandlers>
+</psalm>

@@ -1,0 +1,63 @@
+#!/bin/bash
+# Script used to clear cache in the application docker container
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+ARGS="$*"
+AUTOLOAD=true
+
+# Initialize default variables and functions and export all environment variables from application environment files
+cd "${PROJECT_ROOT}" || exit 1
+# shellcheck disable=SC1091
+. ./bin/docker-libvariables
+
+function help() {
+    echo -en "$(printf %q "${BASH_SOURCE[0]}") [OPERATION] [OPTIONS]
+    \nScript used to clear cache in the application docker container
+
+    Options:
+        --no-autoload Do not run dump-autoload, only clear cache folder and redis
+
+    Examples:
+        $(printf %q "${BASH_SOURCE[0]}") --no-autoload
+    \n"
+}
+
+while [ "$#" -gt 0 ]; do
+    case $1 in
+    --no-autoload)
+        AUTOLOAD=false
+        shift 1
+        continue
+        ;;
+    -h | --help)
+        help
+        exit
+        ;;
+    *)
+        echo "[WARN] Unknown command line switch: $1" >&2
+        help
+        exit
+        ;;
+    esac
+done
+
+if [ -f /.dockerenv ]; then
+    for env_file in ${ENV_APPLICATION_FILE_DIST} ${ENV_APPLICATION_FILE}; do
+        if [ -f "$env_file" ]; then
+            ENV_DOCKER_VARS=()
+            while read -r line; do [[ ! ${line?} =~ ^($|#) ]] && [[ ${line?} =~ REDIS ]] && ENV_DOCKER_VARS+=("export ${line?}"); done 2>/dev/null <"$env_file"
+            for var in "${ENV_DOCKER_VARS[@]}"; do eval "$var"; done
+        fi
+    done
+
+    echo "[INFO] Cache clear"
+    rm -rf var/cache/*
+
+    if ${AUTOLOAD}; then
+        echo "[INFO] Dump autoload command"
+        composer dump-autoload
+    fi
+    exit
+fi
+
+bin/docker-compose run --rm app bash -c \'bin/cc "${ARGS}"\'

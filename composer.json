@@ -1,0 +1,49 @@
+{
+    "name": "anzusystems/auth-bundle",
+    "description": "Anzu authorization services",
+    "type": "symfony-bundle",
+    "keywords": ["symfony", "anzusystems", "authorization"],
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "AnzuSystems Community",
+            "homepage": "https://github.com/orgs/anzusystems/people"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "ext-json": "*",
+        "anzusystems/common-bundle": "^1.0",
+        "doctrine/common": "^3.3",
+        "lcobucci/jwt": "^4.2"
+    },
+    "require-dev": {
+        "doctrine/orm": "^2.13",
+        "nelmio/api-doc-bundle": "^4.9",
+        "slevomat/coding-standard": "^8.5",
+        "symfony/test-pack": "^1.0",
+        "symplify/easy-coding-standard": "^11.1",
+        "vimeo/psalm": "^4.27"
+    },
+    "autoload": {
+        "psr-4": {
+            "AnzuSystems\\AuthBundle\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "AnzuSystems\\AuthBundle\\Tests\\": "tests"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true,
+        "allow-plugins": {
+            "symfony/runtime": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}

@@ -1,0 +1,49 @@
+name: AnzuSystems Auth Bundle by Petitpress.sk CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - php-version: 8.1
+            docker-image: 'anzusystems/php:1.0.0-php81-cli'
+          - php-version: 8.2
+            docker-image: 'anzusystems/php:1.0.0-php82-cli'
+
+    name: PHP ${{ matrix.php-version }}
+    runs-on: ubuntu-latest
+    container: ${{ matrix.docker-image }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Validate composer.json
+        run: composer validate
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-ansi --no-interaction --no-scripts
+
+      - name: Run Security check
+        run: local-php-security-checker --path=composer.lock
+
+      - name: Run ECS style check
+        run: vendor/bin/ecs check -vv
+
+      - name: Run PSALM static analysis
+        run: vendor/bin/psalm
+
+      - name: Run PHPUnit tests
+        run: vendor/bin/phpunit

@@ -1,0 +1,41 @@
+# IDE
+.idea/
+.vscode/
+
+# Cache, session files, logs and secure files
+/var/cache/*
+/var/cron.stop
+/var/ecs_cache/*
+/var/log/*
+
+# Env files
+.env.local
+.env.local.php
+.env.*.local
+
+# Managed by Composer
+/vendor/
+composer.lock
+
+# PHP Coding Standards
+.php_cs
+.php_cs.cache
+.php_cs.dist
+.phpcs-cache
+phpcs.xml
+phpcs.xml.dist
+
+# PHPUnit
+/tests/coverage
+.phpunit
+.phpunit.result.cache
+phpunit.xml
+TEST-*.xml
+
+# Xdebug
+xdebug.log
+
+# Docker
+.docker-sync*
+.docker-compose-host
+docker-compose.override.yml

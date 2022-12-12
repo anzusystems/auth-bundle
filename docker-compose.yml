@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      args:
+        - DOCKER_USER=${DOCKER_USER:-user}
+        - DOCKER_USER_ID=${DOCKER_USER_ID:-1000}
+        - DOCKER_GROUP_ID=${DOCKER_GROUP_ID:-1000}
+      context: .
+    env_file:
+      - .env.docker.dist
+      - .env.docker.local
+    volumes:
+      - ".:/var/www/html:cached"
+      - "./tests/coverage:/opt/phpstorm-coverage:cached"
+    hostname: auth-bundle
+
+networks:
+  default:

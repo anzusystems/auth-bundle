@@ -1,0 +1,10 @@
+# Git and others
+.git/
+.idea/
+.vscode/
+
+# Project files
+.phpunit/
+/var/*
+/vendor
+TEST-*.xml

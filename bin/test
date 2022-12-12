@@ -1,0 +1,15 @@
+#!/bin/bash
+# Script used to run tests in the application docker container
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+ARGS=$*
+
+cd "${PROJECT_ROOT}" || exit 1
+
+if [ -f /.dockerenv ]; then
+    echo "[INFO] Running PHPUnit tests"
+    vendor/bin/phpunit "${ARGS}"
+    exit
+fi
+
+bin/docker-compose run --rm app bash -c \'bin/test "${ARGS}"\'

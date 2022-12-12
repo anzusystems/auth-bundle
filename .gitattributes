@@ -1,0 +1,14 @@
+.editorconfig export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+.dockerignore export-ignore
+phpunit.xml.dist export-ignore
+tests export-ignore
+.env export-ignore
+.env.docker.dist export-ignore
+.docker-compose.yml export-ignore
+composer.lock export-ignore
+symfony.lock export-ignore
+bin export-ignore
+ecs.php export-ignore
+psalm.xml export-ignore

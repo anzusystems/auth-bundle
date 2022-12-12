@@ -1,0 +1,23 @@
+#!/bin/bash
+#
+# Run this script from the project root, e.g.:
+# $ bin/docker-compose up --build -d
+#
+# You can pass docker-compose arguments, like you normally would.
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+cd "${PROJECT_ROOT}" || exit 1
+
+# Initialize default variables
+# shellcheck disable=SC1091
+. ./bin/docker-libvariables
+# Initialize functions
+# shellcheck disable=SC1091
+. ./bin/docker-libfunctions
+
+# Setup docker for the current project
+docker_project_setup
+
+CMD="docker compose --env-file ${ENV_DOCKER_FILE} $*"
+echo_debug "Whole command: '${CMD}'"
+eval "${CMD}"

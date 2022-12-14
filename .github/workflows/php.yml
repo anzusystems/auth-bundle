@@ -1,4 +1,4 @@
-name: AnzuSystems Auth Bundle by Petitpress.sk CI
+name: CI for AnzuSystems Auth Bundle by Petit Press a.s. (www.sme.sk)
 
 on:
   pull_request:

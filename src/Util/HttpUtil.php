@@ -11,6 +11,7 @@ use AnzuSystems\AuthBundle\Exception\InvalidRefreshTokenException;
 use AnzuSystems\AuthBundle\Exception\NotFoundAccessTokenException;
 use AnzuSystems\AuthBundle\Helper\ConditionHelper;
 use AnzuSystems\AuthBundle\Model\RefreshTokenDto;
+use DateTimeImmutable;
 use Lcobucci\JWT\Encoding\JoseEncoder;
 use Lcobucci\JWT\Token;
 use Lcobucci\JWT\Token\Parser;
@@ -88,7 +89,7 @@ final class HttpUtil
     /**
      * @throws InvalidJwtException
      */
-    public function storeJwtOnResponse(Response $response, Token $token): void
+    public function storeJwtOnResponse(Response $response, Token $token, DateTimeImmutable $expiresAt = null): void
     {
         $rawToken = $token->toString();
         [$header, $claims, $signature] = explode('.', $rawToken, 3);
@@ -97,16 +98,17 @@ final class HttpUtil
             throw InvalidJwtException::create($rawToken);
         }
 
+        $lifetime = $expiresAt?->getTimestamp() ?? $this->jwtConfiguration->getLifetime();
         $payloadCookie = $this->createCookie(
             $this->cookieConfiguration->getJwtPayloadCookieName(),
             $header . '.' . $claims,
-            $this->jwtConfiguration->getLifetime(),
+            $lifetime,
             false
         );
         $signatureCookie = $this->createCookie(
             $this->cookieConfiguration->getJwtSignatureCookieName(),
             $signature,
-            $this->jwtConfiguration->getLifetime()
+            $lifetime
         );
         $refreshTokenExistenceCookie = $this->createCookie(
             $this->cookieConfiguration->getRefreshTokenExistenceCookieName(),

@@ -33,7 +33,7 @@ final class JwtUtil
      *
      * @throws MissingConfigurationException
      */
-    public function create(string $userIdentifier, DateTimeImmutable $expiresAt = null): Plain
+    public function create(string $authId, DateTimeImmutable $expiresAt = null): Plain
     {
         $privateCert = $this->jwtConfiguration->getPrivateCert();
 
@@ -46,7 +46,7 @@ final class JwtUtil
             ->issuedAt(new DateTimeImmutable())
             ->canOnlyBeUsedAfter(new DateTimeImmutable())
             ->expiresAt($expiresAt ?: new DateTimeImmutable(sprintf('+%d seconds', $this->jwtConfiguration->getLifetime())))
-            ->relatedTo($userIdentifier)
+            ->relatedTo($authId)
             ->getToken(
                 $this->jwtConfiguration->getAlgorithm()->signer(),
                 InMemory::plainText($privateCert)

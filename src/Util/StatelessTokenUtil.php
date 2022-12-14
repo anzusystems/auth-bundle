@@ -16,9 +16,9 @@ final class StatelessTokenUtil
 
     public function createForRequest(Request $request): string
     {
-        return base64_encode(PasswordHelper::passwordHash(
+        return urldecode(base64_encode(PasswordHelper::passwordHash(
             $this->createPlainForRequest($request)
-        ));
+        )));
     }
 
     /**
@@ -28,7 +28,7 @@ final class StatelessTokenUtil
     {
         $token = $this->createPlainForRequest($request);
 
-        return password_verify($token, base64_decode($hash, strict: true));
+        return password_verify($token, urldecode(base64_decode($hash, strict: true)));
     }
 
     /**

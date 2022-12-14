@@ -4,7 +4,6 @@
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 USER_SWITCH="--user user"
 
-# Initialize default variables and functions
 cd "${PROJECT_ROOT}" || exit 1
 
 function help() {

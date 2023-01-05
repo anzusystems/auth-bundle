@@ -14,7 +14,7 @@
         "php": ">=8.1",
         "ext-json": "*",
         "ext-redis": "*",
-        "anzusystems/common-bundle": "^1.0|^2.0",
+        "anzusystems/common-bundle": "dev-user_management",
         "doctrine/common": "^3.3",
         "lcobucci/jwt": "^4.2"
     },

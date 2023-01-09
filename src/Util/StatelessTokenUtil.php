@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Util;
 
-use AnzuSystems\CommonBundle\Helper\PasswordHelper;
 use Symfony\Component\HttpFoundation\Request;
 
 final class StatelessTokenUtil
@@ -16,9 +15,9 @@ final class StatelessTokenUtil
 
     public function createForRequest(Request $request): string
     {
-        return urldecode(base64_encode(PasswordHelper::passwordHash(
-            $this->createPlainForRequest($request)
-        )));
+        return urldecode(base64_encode(
+            $this->createHashForRequest($request)
+        ));
     }
 
     /**
@@ -26,9 +25,10 @@ final class StatelessTokenUtil
      */
     public function isValidForRequest(Request $request, string $hash): bool
     {
-        $token = $this->createPlainForRequest($request);
-
-        return password_verify($token, urldecode(base64_decode($hash, strict: true)));
+        return hash_equals(
+            known_string: $this->createHashForRequest($request),
+            user_string: urldecode(base64_decode($hash, strict: true)),
+        );
     }
 
     /**
@@ -39,8 +39,12 @@ final class StatelessTokenUtil
         return false === $this->isValidForRequest($request, $hash);
     }
 
-    private function createPlainForRequest(Request $request): string
+    private function createHashForRequest(Request $request): string
     {
-        return $request->headers->get('User-Agent') . $request->getClientIp() . $this->statelessTokenSalt;
+        return hash_hmac(
+            algo: 'sha256',
+            data: $request->headers->get('User-Agent') . $request->getClientIp(),
+            key: $this->statelessTokenSalt,
+        );
     }
 }

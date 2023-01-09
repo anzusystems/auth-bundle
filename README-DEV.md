@@ -1,4 +1,4 @@
-Development on AnzuSystems Auth Bundle by Petitpress.sk
+Development on AnzuSystems Auth Bundle by Petit Press a.s. (www.sme.sk)
 =====
 
 Simple guide on how to develop on the project, run tests, etc.

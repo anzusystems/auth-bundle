@@ -1,4 +1,4 @@
-AnzuSystems Auth Bundle by Petitpress.sk
+AnzuSystems Auth Bundle by Petit Press a.s. (www.sme.sk)
 =====
 
 Provides authorization functionality among Anzusystems' projects.
@@ -23,7 +23,7 @@ anzu_systems_auth:
     secure: false # use true for PROD environment!
   jwt:
     audience: anz
-    algorithm: ES256 # enum (ES256|RS256), default "ES256"  
+    algorithm: ES256 # enum (ES256|RS256), default "ES256"
     public_cert: '%env(base64:AUTH_JWT_PUBLIC_CERT)%' # string representation of a public certificate
     private_cert: '%env(base64:AUTH_JWT_PRIVATE_CERT)%' # string representation of a private certificate
   authorization:
@@ -46,7 +46,7 @@ security:
       entity:
         class: App\Entity\User
         property: email
-        
+
   auth:
     pattern: ^/api/auth/
     stateless: true
@@ -57,7 +57,7 @@ security:
       failure_handler: AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler
     logout:
       path: auth_logout
-      
+
   access_control:
     - { path: ^/api/auth/, roles: PUBLIC_ACCESS }
 ```

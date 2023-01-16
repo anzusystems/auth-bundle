@@ -15,7 +15,7 @@ final class StatelessTokenUtil
 
     public function createForRequest(Request $request): string
     {
-        return urldecode(base64_encode(
+        return urlencode(base64_encode(
             $this->createHashForRequest($request)
         ));
     }

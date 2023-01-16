@@ -123,7 +123,7 @@ final class Configuration implements ConfigurationInterface
             ->children()
                 ->scalarNode('user_repository_service_id')->defaultValue('')->end()
                 ->scalarNode('state_token_salt')->defaultValue(bin2hex(random_bytes(32)))->end()
-                ->scalarNode('state_token_enabled')->defaultTrue()->end()
+                ->booleanNode('state_token_enabled')->defaultTrue()->end()
                 ->scalarNode('authorize_url')->defaultValue('')->end()
                 ->scalarNode('access_token_url')->defaultValue('')->end()
                 ->scalarNode('redirect_url')->defaultValue('')->end()

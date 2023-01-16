@@ -35,7 +35,7 @@ final class StatelessTokenUtil
         if ($this->enabled) {
             return hash_equals(
                 known_string: $this->createHashForRequest($request),
-                user_string: urldecode(base64_decode($hash, strict: true)),
+                user_string: base64_decode(urldecode($hash), strict: true),
             );
         }
 

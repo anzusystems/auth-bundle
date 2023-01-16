@@ -8,16 +8,23 @@ use Symfony\Component\HttpFoundation\Request;
 
 final class StatelessTokenUtil
 {
+    private const NOT_ENABLED_FALLBACK = 'anzusystems-auth';
+
     public function __construct(
         private readonly string $statelessTokenSalt,
+        private readonly bool $enabled,
     ) {
     }
 
     public function createForRequest(Request $request): string
     {
-        return urldecode(base64_encode(
-            $this->createHashForRequest($request)
-        ));
+        if ($this->enabled) {
+            return urlencode(base64_encode(
+                $this->createHashForRequest($request)
+            ));
+        }
+
+        return self::NOT_ENABLED_FALLBACK;
     }
 
     /**
@@ -25,10 +32,14 @@ final class StatelessTokenUtil
      */
     public function isValidForRequest(Request $request, string $hash): bool
     {
-        return hash_equals(
-            known_string: $this->createHashForRequest($request),
-            user_string: urldecode(base64_decode($hash, strict: true)),
-        );
+        if ($this->enabled) {
+            return hash_equals(
+                known_string: $this->createHashForRequest($request),
+                user_string: base64_decode(urldecode($hash), strict: true),
+            );
+        }
+
+        return self::NOT_ENABLED_FALLBACK === $hash;
     }
 
     /**

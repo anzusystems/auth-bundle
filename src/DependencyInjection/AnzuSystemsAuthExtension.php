@@ -123,6 +123,7 @@ final class AnzuSystemsAuthExtension extends Extension
                 $container
                     ->register(StatelessTokenUtil::class)
                     ->setArgument('$statelessTokenSalt', $oauth2Section['state_token_salt'])
+                    ->setArgument('$enabled', $oauth2Section['state_token_enabled'])
                 ;
 
                 $container

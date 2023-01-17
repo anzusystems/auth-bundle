@@ -7,7 +7,7 @@ namespace AnzuSystems\AuthBundle\Exception;
 use AnzuSystems\Contracts\Exception\AnzuException;
 use Throwable;
 
-final class UnsuccessfulOAuth2RequestException extends AnzuException
+final class UnsuccessfulUserInfoRequestException extends AnzuException
 {
     public static function create(string $message, ?Throwable $previous = null): self
     {

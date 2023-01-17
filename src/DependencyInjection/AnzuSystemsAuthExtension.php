@@ -15,6 +15,7 @@ use AnzuSystems\AuthBundle\Domain\Process\OAuth2\ValidateOAuth2AccessTokenProces
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\RefreshTokenStorage\RedisRefreshTokenStorage;
+use AnzuSystems\AuthBundle\Serializer\Handler\Handlers\JwtHandler;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
 use AnzuSystems\AuthBundle\Util\StatelessTokenUtil;
 use Doctrine\ORM\EntityManagerInterface;
@@ -93,10 +94,13 @@ final class AnzuSystemsAuthExtension extends Extension
                     ->setArgument('$ssoAccessTokenUrl', $oauth2Section['access_token_url'])
                     ->setArgument('$ssoAuthorizeUrl', $oauth2Section['authorize_url'])
                     ->setArgument('$ssoRedirectUrl', $oauth2Section['redirect_url'])
+                    ->setArgument('$ssoUserInfoUrl', $oauth2Section['user_info_url'])
+                    ->setArgument('$ssoUserInfoClass', $oauth2Section['user_info_class'])
                     ->setArgument('$ssoClientId', $oauth2Section['client_id'])
                     ->setArgument('$ssoClientSecret', $oauth2Section['client_secret'])
                     ->setArgument('$ssoPublicCert', $oauth2Section['public_cert'])
                     ->setArgument('$ssoScopes', $oauth2Section['scopes'])
+                    ->setArgument('$accessTokenCachePool', new Reference($oauth2Section['access_token_cache']))
                 ;
 
                 $container
@@ -129,6 +133,12 @@ final class AnzuSystemsAuthExtension extends Extension
                 $container
                     ->register(OAuth2HttpClient::class)
                     ->setAutowired(true)
+                ;
+
+                $container
+                    ->register(JwtHandler::class)
+                    ->setAutowired(true)
+                    ->setAutoconfigured(true)
                 ;
             }
             if ($authorizationType->is(AuthType::JsonCredentials)) {

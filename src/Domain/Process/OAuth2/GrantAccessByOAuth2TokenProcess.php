@@ -7,7 +7,7 @@ namespace AnzuSystems\AuthBundle\Domain\Process\OAuth2;
 use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
 use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
-use AnzuSystems\AuthBundle\Exception\UnsuccessfulOAuth2RequestException;
+use AnzuSystems\AuthBundle\Exception\UnsuccessfulAccessTokenRequestException;
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
 use AnzuSystems\AuthBundle\Model\Enum\UserOAuthLoginState;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
@@ -45,8 +45,8 @@ final class GrantAccessByOAuth2TokenProcess
         $code = (string) $request->query->get('code');
 
         try {
-            $ssoJwt = $this->OAuth2HttpClient->requestAccessToken($code);
-        } catch (UnsuccessfulOAuth2RequestException $exception) {
+            $ssoJwt = $this->OAuth2HttpClient->requestAccessTokenByAuthCode($code);
+        } catch (UnsuccessfulAccessTokenRequestException $exception) {
             $this->logException($request, $exception);
 
             return $this->createRedirectResponseForRequest($request, UserOAuthLoginState::FailureSsoCommunicationFailed);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use AnzuSystems\AuthBundle\Command\ChangeApiTokenCommand;
 use AnzuSystems\AuthBundle\Configuration\CookieConfiguration;
 use AnzuSystems\AuthBundle\Configuration\JwtConfiguration;
 use AnzuSystems\AuthBundle\Security\Authentication\ApiTokenAuthenticator;
@@ -55,5 +56,12 @@ return static function (ContainerConfigurator $configurator): void {
     $services
         ->set(ApiTokenAuthenticator::class)
         ->autowire()
+    ;
+
+    $services
+        ->set(ChangeApiTokenCommand::class)
+        ->tag('console.command')
+        ->autowire()
+        ->autoconfigure()
     ;
 };

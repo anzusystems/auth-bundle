@@ -4,16 +4,25 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Configuration;
 
+use AnzuSystems\AuthBundle\Model\SsoUserDto;
+use Psr\Cache\CacheItemPoolInterface;
+
 final class OAuth2Configuration
 {
+    public const SSO_USER_ID_PLACEHOLDER_URL = '{userId}';
+
     public function __construct(
         private readonly string $ssoAccessTokenUrl,
         private readonly string $ssoAuthorizeUrl,
         private readonly string $ssoRedirectUrl,
+        private readonly string $ssoUserInfoUrl,
+        /** @var class-string<SsoUserDto> */
+        private readonly string $ssoUserInfoClass,
         private readonly string $ssoClientId,
         private readonly string $ssoClientSecret,
         private readonly string $ssoPublicCert,
         private readonly array $ssoScopes,
+        private readonly CacheItemPoolInterface $accessTokenCachePool,
     ) {
     }
 
@@ -25,6 +34,19 @@ final class OAuth2Configuration
     public function getSsoAuthorizeUrl(): string
     {
         return $this->ssoAuthorizeUrl;
+    }
+
+    public function getSsoUserInfoUrl(string $userId): string
+    {
+        return str_replace(self::SSO_USER_ID_PLACEHOLDER_URL, $userId, $this->ssoUserInfoUrl);
+    }
+
+    /**
+     * @return class-string<SsoUserDto>
+     */
+    public function getSsoUserInfoClass(): string
+    {
+        return $this->ssoUserInfoClass;
     }
 
     public function getResolvedSsoAuthorizeUrl(string $state): string
@@ -66,5 +88,10 @@ final class OAuth2Configuration
     public function getSsoScopes(): array
     {
         return $this->ssoScopes;
+    }
+
+    public function getAccessTokenCachePool(): CacheItemPoolInterface
+    {
+        return $this->accessTokenCachePool;
     }
 }

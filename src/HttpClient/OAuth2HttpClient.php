@@ -49,19 +49,18 @@ final class OAuth2HttpClient
      */
     public function getSsoUserInfo(string $id): SsoUserDto
     {
-        $token = $this->requestAccessTokenForClientService()->getAccessToken()->toString();
         try {
             $response = $this->client->request(
                 method: Request::METHOD_GET,
                 url: $this->configuration->getSsoUserInfoUrl($id),
                 options: [
-                    'auth_bearer' => $token,
+                    'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken()->toString(),
                 ]
             );
 
             return $this->serializer->deserialize($response->getContent(), $this->configuration->getSsoUserInfoClass());
         } catch (ExceptionInterface $exception) {
-            throw UnsuccessfulUserInfoRequestException::create(sprintf('User info request failed! (jwt: %s) (secret: %s)', $token, $this->configuration->getSsoClientSecret()), $exception);
+            throw UnsuccessfulUserInfoRequestException::create('User info request failed!', $exception);
         } catch (SerializerException $exception) {
             throw UnsuccessfulUserInfoRequestException::create('User info response deserialization failed!', $exception);
         }

@@ -89,7 +89,7 @@ final class OAuth2HttpClient
         /** @var DateTimeInterface $expiresAfter */
         $expiresAfter = $accessToken->getAccessToken()->claims()->get('exp');
         $accessTokenCacheItem->set($accessToken);
-        $accessTokenCacheItem->expiresAfter($expiresAfter->getTimestamp());
+        $accessTokenCacheItem->expiresAt($expiresAfter);
         $cachePool->save($accessTokenCacheItem);
 
         return $accessToken;

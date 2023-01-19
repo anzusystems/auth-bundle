@@ -9,6 +9,7 @@ use AnzuSystems\AuthBundle\Exception\UnsuccessfulAccessTokenRequestException;
 use AnzuSystems\AuthBundle\Exception\UnsuccessfulUserInfoRequestException;
 use AnzuSystems\AuthBundle\Model\AccessTokenResponseDto;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
+use AnzuSystems\CommonBundle\Log\Factory\LogContextFactory;
 use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use AnzuSystems\SerializerBundle\Serializer;
 use DateTimeInterface;
@@ -24,6 +25,7 @@ final class OAuth2HttpClient
         private readonly HttpClientInterface $client,
         private readonly OAuth2Configuration $configuration,
         private readonly Serializer $serializer,
+
     ) {
     }
 
@@ -47,18 +49,19 @@ final class OAuth2HttpClient
      */
     public function getSsoUserInfo(string $id): SsoUserDto
     {
+        $token = $this->requestAccessTokenForClientService()->getAccessToken()->toString();
         try {
             $response = $this->client->request(
                 method: Request::METHOD_GET,
                 url: $this->configuration->getSsoUserInfoUrl($id),
                 options: [
-                    'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken()->toString(),
+                    'auth_bearer' => $token,
                 ]
             );
 
             return $this->serializer->deserialize($response->getContent(), $this->configuration->getSsoUserInfoClass());
         } catch (ExceptionInterface $exception) {
-            throw UnsuccessfulUserInfoRequestException::create('User info request failed!', $exception);
+            throw UnsuccessfulUserInfoRequestException::create(sprintf('User info request failed! (jwt: %s) (secret: %s)', $token, $this->configuration->getSsoClientSecret()), $exception);
         } catch (SerializerException $exception) {
             throw UnsuccessfulUserInfoRequestException::create('User info response deserialization failed!', $exception);
         }

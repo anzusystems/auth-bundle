@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\DependencyInjection;
 
+use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\Model\Enum\JwtAlgorithm;
+use AnzuSystems\AuthBundle\Model\SsoUserDto;
 use Exception;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -126,6 +128,22 @@ final class Configuration implements ConfigurationInterface
                 ->booleanNode('state_token_enabled')->defaultTrue()->end()
                 ->scalarNode('authorize_url')->defaultValue('')->end()
                 ->scalarNode('access_token_url')->defaultValue('')->end()
+                ->scalarNode('user_info_url')
+                    ->defaultValue('')
+                    ->info(sprintf(
+                        'You can use placeholder "%s", which will be replaced with user identifier.',
+                        OAuth2Configuration::SSO_USER_ID_PLACEHOLDER_URL,
+                    ))
+                ->end()
+                ->scalarNode('access_token_cache')
+                    ->cannotBeEmpty()
+                    ->defaultValue('cache.app')
+                    ->info('A cache for storing access tokens.')
+                ->end()
+                ->scalarNode('user_info_class')
+                    ->defaultValue(SsoUserDto::class)
+                    ->info('Any replacement of the default value class, must extend it.')
+                ->end()
                 ->scalarNode('redirect_url')->defaultValue('')->end()
                 ->scalarNode('client_id')->defaultValue('')->end()
                 ->scalarNode('client_secret')->defaultValue('')->end()

@@ -30,6 +30,9 @@ final class ApiTokenAuthenticator extends AbstractAuthenticator
     public function authenticate(Request $request): Passport
     {
         [$userId, $token] = $this->getCredentials($request);
+        if (empty($userId) || empty($token)) {
+            throw new AuthenticationException('Unauthorized request!');
+        }
         $credentialsChecker = function (string $token, ApiTokenUserInterface $user): bool {
             return $this->checkCredentials($token, $user);
         };

@@ -6,7 +6,6 @@ namespace AnzuSystems\AuthBundle\Tests\Util;
 
 use AnzuSystems\AuthBundle\Configuration\CookieConfiguration;
 use AnzuSystems\AuthBundle\Configuration\JwtConfiguration;
-use AnzuSystems\AuthBundle\Exception\MissingConfigurationException;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
 use AnzuSystems\AuthBundle\Util\JwtUtil;
 use DateTimeImmutable;
@@ -50,9 +49,6 @@ final class HttpUtilTest extends TestCase
         );
     }
 
-    /**
-     * @throws MissingConfigurationException
-     */
     public function testStoreJwtOnResponse(): void
     {
         $response = new Response();

@@ -25,7 +25,6 @@ final class OAuth2HttpClient
         private readonly HttpClientInterface $client,
         private readonly OAuth2Configuration $configuration,
         private readonly Serializer $serializer,
-
     ) {
     }
 

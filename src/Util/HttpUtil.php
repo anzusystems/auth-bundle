@@ -110,16 +110,9 @@ final class HttpUtil
             $signature,
             $lifetime
         );
-        $refreshTokenExistenceCookie = $this->createCookie(
-            $this->cookieConfiguration->getRefreshTokenExistenceCookieName(),
-            '1',
-            $this->cookieConfiguration->getRefreshTokenLifetime(),
-            false
-        );
 
         $response->headers->setCookie($payloadCookie);
         $response->headers->setCookie($signatureCookie);
-        $response->headers->setCookie($refreshTokenExistenceCookie);
     }
 
     public function storeRefreshTokenOnResponse(Response $response, RefreshTokenDto $refreshTokenDto): void
@@ -130,7 +123,15 @@ final class HttpUtil
             $this->cookieConfiguration->getRefreshTokenLifetime(),
         );
 
+        $refreshTokenExistenceCookie = $this->createCookie(
+            $this->cookieConfiguration->getRefreshTokenExistenceCookieName(),
+            '1',
+            $this->cookieConfiguration->getRefreshTokenLifetime(),
+            false
+        );
+
         $response->headers->setCookie($refreshTokenCookie);
+        $response->headers->setCookie($refreshTokenExistenceCookie);
     }
 
     public function storeDeviceIdOnResponse(Response $response, string $deviceId): void

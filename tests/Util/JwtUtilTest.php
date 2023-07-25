@@ -44,4 +44,22 @@ final class JwtUtilTest extends TestCase
         );
         $this->assertSame(['anz'], $jwt->claims()->get(RegisteredClaims::AUDIENCE));
     }
+
+    /**
+     * @throws MissingConfigurationException
+     */
+    public function testCreateWithClaims(): void
+    {
+        $expireAt = new DateTimeImmutable(sprintf('+%d seconds', $this->jwtConfiguration->getLifetime()));
+        $jwt = $this->jwtUtil->create('123', $expireAt, ['foo' => 'bar', 'qux' => 'quux']);
+        $this->assertInstanceOf(Plain::class, $jwt);
+        $this->assertSame('123', $jwt->claims()->get(RegisteredClaims::SUBJECT));
+        $this->assertSame('bar', $jwt->claims()->get('foo'));
+        $this->assertSame('quux', $jwt->claims()->get('qux'));
+        $this->assertSame(
+            $expireAt->getTimestamp(),
+            $jwt->claims()->get(RegisteredClaims::EXPIRATION_TIME)->getTimestamp()
+        );
+        $this->assertSame(['anz'], $jwt->claims()->get(RegisteredClaims::AUDIENCE));
+    }
 }

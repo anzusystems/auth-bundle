@@ -55,7 +55,7 @@ final class JwtUtilTest extends TestCase
         $this->assertInstanceOf(Plain::class, $jwt);
         $this->assertSame('123', $jwt->claims()->get(RegisteredClaims::SUBJECT));
         $this->assertSame('bar', $jwt->claims()->get('foo'));
-        $this->assertSame('quux', $jwt->claims()->get('quxx'));
+        $this->assertSame('quux', $jwt->claims()->get('qux'));
         $this->assertSame(
             $expireAt->getTimestamp(),
             $jwt->claims()->get(RegisteredClaims::EXPIRATION_TIME)->getTimestamp()

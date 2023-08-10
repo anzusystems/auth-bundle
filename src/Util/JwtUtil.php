@@ -31,9 +31,11 @@ final class JwtUtil
     /**
      * Can be used for creating a valid JWT. Useful especially for test environment.
      *
+     * @param array<string, mixed> $claims
+     *
      * @throws MissingConfigurationException
      */
-    public function create(string $authId, DateTimeImmutable $expiresAt = null): Plain
+    public function create(string $authId, DateTimeImmutable $expiresAt = null, array $claims = []): Plain
     {
         $privateCert = $this->jwtConfiguration->getPrivateCert();
 
@@ -41,16 +43,21 @@ final class JwtUtil
             throw MissingConfigurationException::createForPrivateCertPath();
         }
 
-        return (new Builder(new JoseEncoder(), ChainedFormatter::withUnixTimestampDates()))
+        $builder = (new Builder(new JoseEncoder(), ChainedFormatter::withUnixTimestampDates()))
             ->permittedFor($this->jwtConfiguration->getAudience())
             ->issuedAt(new DateTimeImmutable())
             ->canOnlyBeUsedAfter(new DateTimeImmutable())
             ->expiresAt($expiresAt ?: new DateTimeImmutable(sprintf('+%d seconds', $this->jwtConfiguration->getLifetime())))
-            ->relatedTo($authId)
-            ->getToken(
-                $this->jwtConfiguration->getAlgorithm()->signer(),
-                InMemory::plainText($privateCert)
-            );
+            ->relatedTo($authId);
+
+        foreach ($claims as $key => $value) {
+            $builder->withClaim($key, $value);
+        }
+
+        return $builder->getToken(
+            $this->jwtConfiguration->getAlgorithm()->signer(),
+            InMemory::plainText($privateCert)
+        );
     }
 
     public function validate(Token\Plain $token): bool

@@ -100,6 +100,7 @@ final class AnzuSystemsAuthExtension extends Extension
                     ->setArgument('$ssoClientSecret', $oauth2Section['client_secret'])
                     ->setArgument('$ssoPublicCert', $oauth2Section['public_cert'])
                     ->setArgument('$ssoScopes', $oauth2Section['scopes'])
+                    ->setArgument('$ssoScopeDelimiter', $oauth2Section['scope_delimiter'])
                     ->setArgument('$accessTokenCachePool', new Reference($oauth2Section['access_token_cache']))
                 ;
 

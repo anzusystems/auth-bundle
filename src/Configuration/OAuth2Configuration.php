@@ -22,6 +22,7 @@ final class OAuth2Configuration
         private readonly string $ssoClientSecret,
         private readonly string $ssoPublicCert,
         private readonly array $ssoScopes,
+        private readonly string $ssoScopeDelimiter,
         private readonly CacheItemPoolInterface $accessTokenCachePool,
     ) {
     }
@@ -57,7 +58,7 @@ final class OAuth2Configuration
                 'response_type' => 'code',
                 'state' => $state,
                 'redirect_uri' => $this->getSsoRedirectUrl(),
-                'scope' => implode(',', $this->getSsoScopes()),
+                'scope' => implode($this->ssoScopeDelimiter, $this->getSsoScopes()),
             ])
         );
     }

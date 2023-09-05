@@ -149,6 +149,7 @@ final class Configuration implements ConfigurationInterface
                 ->scalarNode('client_id')->defaultValue('')->end()
                 ->scalarNode('client_secret')->defaultValue('')->end()
                 ->scalarNode('public_cert')->defaultValue('')->end()
+                ->enumNode('scope_delimiter')->values([' ', ','])->defaultValue(',')->end()
                 ->arrayNode('scopes')->scalarPrototype()->end()->end()
             ->end()
         ;

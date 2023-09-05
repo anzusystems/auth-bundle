@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Tests\DependencyInjection;
 
+use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\DependencyInjection\AnzuSystemsAuthExtension;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
@@ -52,6 +53,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertNotHasDefinition(GrantAccessOnResponseProcess::class);
         $this->assertNotHasDefinition(RefreshTokenProcess::class);
         $this->assertNotHasDefinition(LogoutListener::class);
+        $this->assertNotHasDefinition(OAuth2Configuration::class);
     }
 
     public function testFullConfiguration(): void
@@ -84,6 +86,21 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertHasDefinition(GrantAccessOnResponseProcess::class);
         $this->assertHasDefinition(RefreshTokenProcess::class);
         $this->assertHasDefinition(LogoutListener::class);
+
+        $this->assertHasDefinition(OAuth2Configuration::class);
+
+        $oAuth2ConfigurationDefinition = $this->configuration->getDefinition(OAuth2Configuration::class);
+        $arguments = $oAuth2ConfigurationDefinition->getArguments();
+        self::assertSame('https://example.com/access-token-url', $arguments['$ssoAccessTokenUrl']);
+        self::assertSame('https://example.com/authorize-url', $arguments['$ssoAuthorizeUrl']);
+        self::assertSame('https://example.com/redirect-url', $arguments['$ssoRedirectUrl']);
+        self::assertSame('https://example.com/user-info-url', $arguments['$ssoUserInfoUrl']);
+        self::assertSame('AnzuSystems\AuthBundle\Model\SsoUserDto', $arguments['$ssoUserInfoClass']);
+        self::assertSame('qux', $arguments['$ssoClientId']);
+        self::assertSame('bar-secret', $arguments['$ssoClientSecret']);
+        self::assertSame('qux-public-cert', $arguments['$ssoPublicCert']);
+        self::assertSame(['email', 'profile'], $arguments['$ssoScopes']);
+        self::assertSame(' ', $arguments['$ssoScopeDelimiter']);
     }
 
     private function getEmptyConfig(): ?array
@@ -120,13 +137,18 @@ authorization:
     type: oauth2
     oauth2:
       user_repository_service_id: App\Repository\UserRepository
-      authorize_url: 'https://example.com/authorize-url%'
+      authorize_url: 'https://example.com/authorize-url'
+      user_info_url: 'https://example.com/user-info-url'
       state_token_salt: 'qux-quux'
       access_token_url: 'https://example.com/access-token-url'
       redirect_url: 'https://example.com/redirect-url'
-      client_id: anzusystems-forum
+      client_id: qux
       client_secret: 'bar-secret'
       public_cert: 'qux-public-cert'
+      scopes:
+        - email
+        - profile
+      scope_delimiter: ' '   
 EOF;
         $parser = new Parser();
 

@@ -7,12 +7,12 @@ namespace AnzuSystems\AuthBundle\HttpClient;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Exception\UnsuccessfulAccessTokenRequestException;
 use AnzuSystems\AuthBundle\Exception\UnsuccessfulUserInfoRequestException;
+use AnzuSystems\AuthBundle\Model\AccessTokenDto;
 use AnzuSystems\AuthBundle\Model\AccessTokenResponseDto;
+use AnzuSystems\AuthBundle\Model\OpaqueAccessTokenResponseDto;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
-use AnzuSystems\CommonBundle\Log\Factory\LogContextFactory;
 use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use AnzuSystems\SerializerBundle\Serializer;
-use DateTimeInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -31,7 +31,7 @@ final class OAuth2HttpClient
     /**
      * @throws UnsuccessfulAccessTokenRequestException
      */
-    public function requestAccessTokenByAuthCode(string $code): AccessTokenResponseDto
+    public function requestAccessTokenByAuthCode(string $code): AccessTokenDto
     {
         return $this->sendTokenRequest($this->configuration->getSsoAccessTokenUrl(), [
             'grant_type' => 'authorization_code',
@@ -53,7 +53,7 @@ final class OAuth2HttpClient
                 method: Request::METHOD_GET,
                 url: $this->configuration->getSsoUserInfoUrl($id),
                 options: [
-                    'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken()->toString(),
+                    'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken(),
                 ]
             );
 
@@ -70,7 +70,7 @@ final class OAuth2HttpClient
      *
      * @noinspection PhpDocMissingThrowsInspection
      */
-    private function requestAccessTokenForClientService(): AccessTokenResponseDto
+    private function requestAccessTokenForClientService(): AccessTokenDto
     {
         $cachePool = $this->configuration->getAccessTokenCachePool();
         /** @noinspection PhpUnhandledExceptionInspection */
@@ -84,10 +84,9 @@ final class OAuth2HttpClient
             'client_id' => $this->configuration->getSsoClientId(),
             'client_secret' => $this->configuration->getSsoClientSecret(),
         ]);
-        /** @var DateTimeInterface $expiresAfter */
-        $expiresAfter = $accessToken->getAccessToken()->claims()->get('exp');
+
         $accessTokenCacheItem->set($accessToken);
-        $accessTokenCacheItem->expiresAt($expiresAfter);
+        $accessTokenCacheItem->expiresAt($accessToken->getExpiresAt());
         $cachePool->save($accessTokenCacheItem);
 
         return $accessToken;
@@ -96,12 +95,20 @@ final class OAuth2HttpClient
     /**
      * @throws UnsuccessfulAccessTokenRequestException
      */
-    private function sendTokenRequest(string $url, array $bodyParameters): AccessTokenResponseDto
+    private function sendTokenRequest(string $url, array $bodyParameters): AccessTokenDto
     {
         try {
             $response = $this->client->request(Request::METHOD_POST, $url, ['body' => $bodyParameters]);
 
-            return $this->serializer->deserialize($response->getContent(), AccessTokenResponseDto::class);
+            if ($this->configuration->isAccessTokenConsideredJwt()) {
+                return AccessTokenDto::createFromJwtAccessTokenResponse(
+                    $this->serializer->deserialize($response->getContent(), AccessTokenResponseDto::class)
+                );
+            }
+
+            return AccessTokenDto::createFromOpaqueAccessTokenResponse(
+                $this->serializer->deserialize($response->getContent(), OpaqueAccessTokenResponseDto::class)
+            );
         } catch (ExceptionInterface $exception) {
             throw UnsuccessfulAccessTokenRequestException::create('Token request failed!', $exception);
         } catch (SerializerException $exception) {

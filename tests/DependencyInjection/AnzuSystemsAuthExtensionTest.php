@@ -102,6 +102,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         self::assertSame('qux-public-cert', $oAuth2ConfArguments['$ssoPublicCert']);
         self::assertSame(['email', 'profile'], $oAuth2ConfArguments['$ssoScopes']);
         self::assertSame(' ', $oAuth2ConfArguments['$ssoScopeDelimiter']);
+        self::assertFalse($oAuth2ConfArguments['$considerAccessTokenAsJwt']);
 
         $this->assertHasDefinition(GrantAccessByOAuth2TokenProcess::class);
         $grantProcessDefinition = $this->configuration->getDefinition(GrantAccessByOAuth2TokenProcess::class);
@@ -156,6 +157,7 @@ authorization:
         - profile
       scope_delimiter: ' '
       auth_method: sso_email
+      consider_access_token_as_jwt: false
 EOF;
         $parser = new Parser();
 

@@ -20,7 +20,7 @@ enum JwtAlgorithm: string implements EnumInterface
     public function signer(): Signer\Ecdsa | Signer\Rsa\Sha256
     {
         return match ($this) {
-            self::ES256 => Signer\Ecdsa\Sha256::create(),
+            self::ES256 => new Signer\Ecdsa\Sha256(),
             self::RS256 => new Signer\Rsa\Sha256(),
         };
     }

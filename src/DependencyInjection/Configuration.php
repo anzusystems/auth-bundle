@@ -152,7 +152,7 @@ final class Configuration implements ConfigurationInterface
                 ->scalarNode('public_cert')->defaultValue('')->end()
                 ->enumNode('scope_delimiter')->values([' ', ','])->defaultValue(',')->end()
                 ->arrayNode('scopes')->scalarPrototype()->end()->end()
-                ->booleanNode('auth_by_email')->defaultFalse()->end()
+                ->booleanNode('consider_access_token_as_jwt')->defaultTrue()->end()
                 ->enumNode('auth_method')
                     ->values([GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_ID, GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_EMAIL])
                     ->defaultValue(GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_ID)

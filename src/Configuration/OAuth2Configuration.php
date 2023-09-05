@@ -23,6 +23,7 @@ final class OAuth2Configuration
         private readonly string $ssoPublicCert,
         private readonly array $ssoScopes,
         private readonly string $ssoScopeDelimiter,
+        private readonly bool $considerAccessTokenAsJwt,
         private readonly CacheItemPoolInterface $accessTokenCachePool,
     ) {
     }
@@ -98,5 +99,10 @@ final class OAuth2Configuration
     public function getAccessTokenCachePool(): CacheItemPoolInterface
     {
         return $this->accessTokenCachePool;
+    }
+
+    public function isAccessTokenConsideredJwt(): bool
+    {
+        return $this->considerAccessTokenAsJwt;
     }
 }

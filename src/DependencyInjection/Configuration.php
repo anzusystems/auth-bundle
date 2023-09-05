@@ -37,8 +37,9 @@ final class Configuration implements ConfigurationInterface
     {
         return (new TreeBuilder('cookie'))->getRootNode()
             ->isRequired()
+            ->addDefaultsIfNotSet()
             ->children()
-                ->scalarNode('domain')->isRequired()->cannotBeEmpty()->end()
+                ->scalarNode('domain')->defaultValue(null)->end()
                 ->booleanNode('secure')->isRequired()->end()
                 ->scalarNode('device_id_name')->defaultValue('anz_di')->end()
                 ->arrayNode('jwt')

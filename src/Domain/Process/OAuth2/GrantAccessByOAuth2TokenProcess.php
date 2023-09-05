@@ -8,11 +8,13 @@ use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
 use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
 use AnzuSystems\AuthBundle\Exception\UnsuccessfulAccessTokenRequestException;
+use AnzuSystems\AuthBundle\Exception\UnsuccessfulUserInfoRequestException;
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
 use AnzuSystems\AuthBundle\Model\Enum\UserOAuthLoginState;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
 use AnzuSystems\CommonBundle\Log\Factory\LogContextFactory;
 use AnzuSystems\CommonBundle\Traits\SerializerAwareTrait;
+use AnzuSystems\Contracts\Exception\AnzuException;
 use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use Exception;
 use Lcobucci\JWT\Token\RegisteredClaims;
@@ -26,19 +28,24 @@ final class GrantAccessByOAuth2TokenProcess
 {
     use SerializerAwareTrait;
 
+    public const AUTH_METHOD_SSO_ID = 'sso_id';
+    public const AUTH_METHOD_SSO_EMAIL = 'sso_email';
+
     public function __construct(
         private readonly OAuth2HttpClient $OAuth2HttpClient,
         private readonly GrantAccessOnResponseProcess $grantAccessOnResponseProcess,
         private readonly ValidateOAuth2AccessTokenProcess $validateOAuth2AccessTokenProcess,
-        private readonly OAuth2AuthUserRepositoryInterface $OAuth2AuthUserRepository,
+        private readonly OAuth2AuthUserRepositoryInterface $oAuth2AuthUserRepository,
         private readonly HttpUtil $httpUtil,
         private readonly LoggerInterface $appLogger,
         private readonly LogContextFactory $contextFactory,
+        private readonly string $authMethod,
     ) {
     }
 
     /**
      * @throws SerializerException
+     * @throws AnzuException
      */
     public function execute(Request $request): Response
     {
@@ -54,13 +61,28 @@ final class GrantAccessByOAuth2TokenProcess
 
         try {
             $this->validateOAuth2AccessTokenProcess->execute($ssoJwt->getAccessToken());
-            $ssoUserId = (string) $ssoJwt->getAccessToken()->claims()->get(RegisteredClaims::SUBJECT);
         } catch (InvalidJwtException $exception) {
             $this->logException($request, $exception);
 
             return $this->createRedirectResponseForRequest($request, UserOAuthLoginState::FailureUnauthorized);
         }
-        $authUser = $this->OAuth2AuthUserRepository->findOneBySsoUserId($ssoUserId);
+
+        if (self::AUTH_METHOD_SSO_EMAIL === $this->authMethod) {
+            try {
+                $ssoUser = $this->OAuth2HttpClient->getSsoUserInfo();
+            } catch (UnsuccessfulUserInfoRequestException | UnsuccessfulAccessTokenRequestException $exception) {
+                $this->logException($request, $exception);
+
+                return $this->createRedirectResponseForRequest($request, UserOAuthLoginState::FailureSsoCommunicationFailed);
+            }
+            $authUser = $this->oAuth2AuthUserRepository->findOneByEmail($ssoUser->getEmail());
+        } else if (self::AUTH_METHOD_SSO_ID === $this->authMethod) {
+            $ssoUserId = (string)$ssoJwt->getAccessToken()->claims()->get(RegisteredClaims::SUBJECT);
+            $authUser = $this->oAuth2AuthUserRepository->findOneBySsoUserId($ssoUserId);
+        } else {
+            throw new AnzuException(sprintf('Unknown auth method "%s".', $this->authMethod));
+        }
+
         if (null === $authUser || false === $authUser->isEnabled()) {
             return $this->createRedirectResponseForRequest($request, UserOAuthLoginState::FailureUnauthorized);
         }

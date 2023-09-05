@@ -117,6 +117,7 @@ final class AnzuSystemsAuthExtension extends Extension
                     ->register(GrantAccessByOAuth2TokenProcess::class)
                     ->setAutowired(true)
                     ->setAutoconfigured(true)
+                    ->setArgument('$authMethod', $oauth2Section['auth_method'])
                 ;
 
                 $container

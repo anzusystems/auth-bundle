@@ -7,6 +7,7 @@ namespace AnzuSystems\AuthBundle\Tests\DependencyInjection;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\DependencyInjection\AnzuSystemsAuthExtension;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
+use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
 use AnzuSystems\AuthBundle\Event\Listener\LogoutListener;
 use AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler;
@@ -54,6 +55,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertNotHasDefinition(RefreshTokenProcess::class);
         $this->assertNotHasDefinition(LogoutListener::class);
         $this->assertNotHasDefinition(OAuth2Configuration::class);
+        $this->assertNotHasDefinition(GrantAccessByOAuth2TokenProcess::class);
     }
 
     public function testFullConfiguration(): void
@@ -88,19 +90,23 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertHasDefinition(LogoutListener::class);
 
         $this->assertHasDefinition(OAuth2Configuration::class);
-
         $oAuth2ConfigurationDefinition = $this->configuration->getDefinition(OAuth2Configuration::class);
-        $arguments = $oAuth2ConfigurationDefinition->getArguments();
-        self::assertSame('https://example.com/access-token-url', $arguments['$ssoAccessTokenUrl']);
-        self::assertSame('https://example.com/authorize-url', $arguments['$ssoAuthorizeUrl']);
-        self::assertSame('https://example.com/redirect-url', $arguments['$ssoRedirectUrl']);
-        self::assertSame('https://example.com/user-info-url', $arguments['$ssoUserInfoUrl']);
-        self::assertSame('AnzuSystems\AuthBundle\Model\SsoUserDto', $arguments['$ssoUserInfoClass']);
-        self::assertSame('qux', $arguments['$ssoClientId']);
-        self::assertSame('bar-secret', $arguments['$ssoClientSecret']);
-        self::assertSame('qux-public-cert', $arguments['$ssoPublicCert']);
-        self::assertSame(['email', 'profile'], $arguments['$ssoScopes']);
-        self::assertSame(' ', $arguments['$ssoScopeDelimiter']);
+        $oAuth2ConfArguments = $oAuth2ConfigurationDefinition->getArguments();
+        self::assertSame('https://example.com/access-token-url', $oAuth2ConfArguments['$ssoAccessTokenUrl']);
+        self::assertSame('https://example.com/authorize-url', $oAuth2ConfArguments['$ssoAuthorizeUrl']);
+        self::assertSame('https://example.com/redirect-url', $oAuth2ConfArguments['$ssoRedirectUrl']);
+        self::assertSame('https://example.com/user-info-url', $oAuth2ConfArguments['$ssoUserInfoUrl']);
+        self::assertSame('AnzuSystems\AuthBundle\Model\SsoUserDto', $oAuth2ConfArguments['$ssoUserInfoClass']);
+        self::assertSame('qux', $oAuth2ConfArguments['$ssoClientId']);
+        self::assertSame('bar-secret', $oAuth2ConfArguments['$ssoClientSecret']);
+        self::assertSame('qux-public-cert', $oAuth2ConfArguments['$ssoPublicCert']);
+        self::assertSame(['email', 'profile'], $oAuth2ConfArguments['$ssoScopes']);
+        self::assertSame(' ', $oAuth2ConfArguments['$ssoScopeDelimiter']);
+
+        $this->assertHasDefinition(GrantAccessByOAuth2TokenProcess::class);
+        $grantProcessDefinition = $this->configuration->getDefinition(GrantAccessByOAuth2TokenProcess::class);
+        $grantProcessArguments = $grantProcessDefinition->getArguments();
+        self::assertSame('sso_email', $grantProcessArguments['$authMethod']);
     }
 
     private function getEmptyConfig(): ?array
@@ -148,7 +154,8 @@ authorization:
       scopes:
         - email
         - profile
-      scope_delimiter: ' '   
+      scope_delimiter: ' '
+      auth_method: sso_email
 EOF;
         $parser = new Parser();
 

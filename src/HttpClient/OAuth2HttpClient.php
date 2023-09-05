@@ -46,7 +46,7 @@ final class OAuth2HttpClient
      * @throws UnsuccessfulAccessTokenRequestException
      * @throws UnsuccessfulUserInfoRequestException
      */
-    public function getSsoUserInfo(string $id): SsoUserDto
+    public function getSsoUserInfo(?string $id = null): SsoUserDto
     {
         try {
             $response = $this->client->request(

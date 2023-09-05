@@ -37,8 +37,12 @@ final class OAuth2Configuration
         return $this->ssoAuthorizeUrl;
     }
 
-    public function getSsoUserInfoUrl(string $userId): string
+    public function getSsoUserInfoUrl(?string $userId): string
     {
+        if (!$userId) {
+            return $this->ssoUserInfoUrl;
+        }
+
         return str_replace(self::SSO_USER_ID_PLACEHOLDER_URL, $userId, $this->ssoUserInfoUrl);
     }
 

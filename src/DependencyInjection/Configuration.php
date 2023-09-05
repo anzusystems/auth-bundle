@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\DependencyInjection;
 
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
+use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\Model\Enum\JwtAlgorithm;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
@@ -151,6 +152,11 @@ final class Configuration implements ConfigurationInterface
                 ->scalarNode('public_cert')->defaultValue('')->end()
                 ->enumNode('scope_delimiter')->values([' ', ','])->defaultValue(',')->end()
                 ->arrayNode('scopes')->scalarPrototype()->end()->end()
+                ->booleanNode('auth_by_email')->defaultFalse()->end()
+                ->enumNode('auth_method')
+                    ->values([GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_ID, GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_EMAIL])
+                    ->defaultValue(GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_ID)
+                ->end()
             ->end()
         ;
     }

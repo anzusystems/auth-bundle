@@ -13,6 +13,7 @@ use AnzuSystems\AuthBundle\Model\OpaqueAccessTokenResponseDto;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
 use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use AnzuSystems\SerializerBundle\Serializer;
+use Psr\Cache\CacheItemInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -33,13 +34,17 @@ final class OAuth2HttpClient
      */
     public function requestAccessTokenByAuthCode(string $code): AccessTokenDto
     {
-        return $this->sendTokenRequest($this->configuration->getSsoAccessTokenUrl(), [
+        $accessToken = $this->sendTokenRequest($this->configuration->getSsoAccessTokenUrl(), [
             'grant_type' => 'authorization_code',
             'code' => $code,
             'client_id' => $this->configuration->getSsoClientId(),
             'client_secret' => $this->configuration->getSsoClientSecret(),
             'redirect_uri' => $this->configuration->getSsoRedirectUrl(),
         ]);
+
+        $this->storeAccessTokenToCache($this->getAccessTokenCacheItem(), $accessToken);
+
+        return $accessToken;
     }
 
     /**
@@ -72,9 +77,7 @@ final class OAuth2HttpClient
      */
     private function requestAccessTokenForClientService(): AccessTokenDto
     {
-        $cachePool = $this->configuration->getAccessTokenCachePool();
-        /** @noinspection PhpUnhandledExceptionInspection */
-        $accessTokenCacheItem = $cachePool->getItem(self::CLIENT_SERVICE_ACCESS_TOKEN_CACHE_KEY);
+        $accessTokenCacheItem = $this->getAccessTokenCacheItem();
         if ($accessTokenCacheItem->isHit()) {
             return $accessTokenCacheItem->get();
         }
@@ -85,9 +88,7 @@ final class OAuth2HttpClient
             'client_secret' => $this->configuration->getSsoClientSecret(),
         ]);
 
-        $accessTokenCacheItem->set($accessToken);
-        $accessTokenCacheItem->expiresAt($accessToken->getExpiresAt());
-        $cachePool->save($accessTokenCacheItem);
+        $this->storeAccessTokenToCache($accessTokenCacheItem, $accessToken);
 
         return $accessToken;
     }
@@ -114,5 +115,24 @@ final class OAuth2HttpClient
         } catch (SerializerException $exception) {
             throw UnsuccessfulAccessTokenRequestException::create('Invalid jwt token response!', $exception);
         }
+    }
+
+    private function getAccessTokenCacheItem(): CacheItemInterface
+    {
+        /** @noinspection PhpUnhandledExceptionInspection */
+        return $this->configuration->getAccessTokenCachePool()->getItem(
+            self::CLIENT_SERVICE_ACCESS_TOKEN_CACHE_KEY
+        );
+    }
+
+    private function storeAccessTokenToCache(
+        CacheItemInterface $accessTokenCacheItem,
+        AccessTokenDto $accessToken
+    ): void {
+        $cachePool = $this->configuration->getAccessTokenCachePool();
+
+        $accessTokenCacheItem->set($accessToken);
+        $accessTokenCacheItem->expiresAt($accessToken->getExpiresAt());
+        $cachePool->save($accessTokenCacheItem);
     }
 }

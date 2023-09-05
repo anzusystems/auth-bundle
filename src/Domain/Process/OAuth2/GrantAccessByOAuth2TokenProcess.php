@@ -75,7 +75,7 @@ final class GrantAccessByOAuth2TokenProcess
 
                 return $this->createRedirectResponseForRequest($request, UserOAuthLoginState::FailureSsoCommunicationFailed);
             }
-            $authUser = $this->oAuth2AuthUserRepository->findOneByEmail($ssoUser->getEmail());
+            $authUser = $this->oAuth2AuthUserRepository->findOneBySsoEmail($ssoUser->getEmail());
         } else if (self::AUTH_METHOD_SSO_ID === $this->authMethod) {
             $ssoUserId = (string)$ssoJwt->getAccessToken()->claims()->get(RegisteredClaims::SUBJECT);
             $authUser = $this->oAuth2AuthUserRepository->findOneBySsoUserId($ssoUserId);

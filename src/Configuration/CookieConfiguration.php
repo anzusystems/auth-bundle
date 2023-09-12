@@ -7,7 +7,7 @@ namespace AnzuSystems\AuthBundle\Configuration;
 final class CookieConfiguration
 {
     public function __construct(
-        private readonly string $domain,
+        private readonly ?string $domain,
         private readonly bool $secure,
         private readonly string $jwtPayloadCookieName,
         private readonly string $jwtSignatureCookieName,
@@ -18,7 +18,7 @@ final class CookieConfiguration
     ) {
     }
 
-    public function getDomain(): string
+    public function getDomain(): ?string
     {
         return $this->domain;
     }

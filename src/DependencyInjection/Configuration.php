@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\DependencyInjection;
 
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
+use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\Model\Enum\JwtAlgorithm;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
@@ -37,8 +38,9 @@ final class Configuration implements ConfigurationInterface
     {
         return (new TreeBuilder('cookie'))->getRootNode()
             ->isRequired()
+            ->addDefaultsIfNotSet()
             ->children()
-                ->scalarNode('domain')->isRequired()->cannotBeEmpty()->end()
+                ->scalarNode('domain')->defaultValue(null)->end()
                 ->booleanNode('secure')->isRequired()->end()
                 ->scalarNode('device_id_name')->defaultValue('anz_di')->end()
                 ->arrayNode('jwt')
@@ -148,7 +150,13 @@ final class Configuration implements ConfigurationInterface
                 ->scalarNode('client_id')->defaultValue('')->end()
                 ->scalarNode('client_secret')->defaultValue('')->end()
                 ->scalarNode('public_cert')->defaultValue('')->end()
+                ->enumNode('scope_delimiter')->values([' ', ','])->defaultValue(',')->end()
                 ->arrayNode('scopes')->scalarPrototype()->end()->end()
+                ->booleanNode('consider_access_token_as_jwt')->defaultTrue()->end()
+                ->enumNode('auth_method')
+                    ->values([GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_ID, GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_EMAIL])
+                    ->defaultValue(GrantAccessByOAuth2TokenProcess::AUTH_METHOD_SSO_ID)
+                ->end()
             ->end()
         ;
     }

@@ -7,4 +7,5 @@ namespace AnzuSystems\AuthBundle\Contracts;
 interface OAuth2AuthUserRepositoryInterface
 {
     public function findOneBySsoUserId(string $ssoUserId): ?AnzuAuthUserInterface;
+    public function findOneBySsoEmail(string $email): ?AnzuAuthUserInterface;
 }

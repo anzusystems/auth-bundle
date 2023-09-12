@@ -22,6 +22,8 @@ final class OAuth2Configuration
         private readonly string $ssoClientSecret,
         private readonly string $ssoPublicCert,
         private readonly array $ssoScopes,
+        private readonly string $ssoScopeDelimiter,
+        private readonly bool $considerAccessTokenAsJwt,
         private readonly CacheItemPoolInterface $accessTokenCachePool,
     ) {
     }
@@ -36,8 +38,12 @@ final class OAuth2Configuration
         return $this->ssoAuthorizeUrl;
     }
 
-    public function getSsoUserInfoUrl(string $userId): string
+    public function getSsoUserInfoUrl(?string $userId): string
     {
+        if (!$userId) {
+            return $this->ssoUserInfoUrl;
+        }
+
         return str_replace(self::SSO_USER_ID_PLACEHOLDER_URL, $userId, $this->ssoUserInfoUrl);
     }
 
@@ -57,7 +63,7 @@ final class OAuth2Configuration
                 'response_type' => 'code',
                 'state' => $state,
                 'redirect_uri' => $this->getSsoRedirectUrl(),
-                'scope' => implode(',', $this->getSsoScopes()),
+                'scope' => implode($this->ssoScopeDelimiter, $this->getSsoScopes()),
             ])
         );
     }
@@ -93,5 +99,10 @@ final class OAuth2Configuration
     public function getAccessTokenCachePool(): CacheItemPoolInterface
     {
         return $this->accessTokenCachePool;
+    }
+
+    public function isAccessTokenConsideredJwt(): bool
+    {
+        return $this->considerAccessTokenAsJwt;
     }
 }

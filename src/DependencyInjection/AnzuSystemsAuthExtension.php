@@ -100,6 +100,8 @@ final class AnzuSystemsAuthExtension extends Extension
                     ->setArgument('$ssoClientSecret', $oauth2Section['client_secret'])
                     ->setArgument('$ssoPublicCert', $oauth2Section['public_cert'])
                     ->setArgument('$ssoScopes', $oauth2Section['scopes'])
+                    ->setArgument('$ssoScopeDelimiter', $oauth2Section['scope_delimiter'])
+                    ->setArgument('$considerAccessTokenAsJwt', $oauth2Section['consider_access_token_as_jwt'])
                     ->setArgument('$accessTokenCachePool', new Reference($oauth2Section['access_token_cache']))
                 ;
 
@@ -116,6 +118,7 @@ final class AnzuSystemsAuthExtension extends Extension
                     ->register(GrantAccessByOAuth2TokenProcess::class)
                     ->setAutowired(true)
                     ->setAutoconfigured(true)
+                    ->setArgument('$authMethod', $oauth2Section['auth_method'])
                 ;
 
                 $container

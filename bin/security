@@ -1,12 +1,12 @@
 #!/bin/bash
-# Script used to run the security check inside the docker container
+# Script used to run the security check in the application container
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 cd "${PROJECT_ROOT}" || exit 1
 
 if [ -f /.dockerenv ] && [ -f composer.lock ]; then
     echo "[INFO] Running composer security check"
-    local-php-security-checker --path=composer.lock
+    composer audit --no-scripts
 
     exit
 fi

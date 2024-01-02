@@ -104,7 +104,11 @@ final class GrantAccessByOAuth2TokenProcess
     private function logException(Request $request, Throwable $throwable): void
     {
         $context = $this->contextFactory->buildFromRequest($request);
-        $this->appLogger->error('[Authorization] ' . $throwable->getMessage(), $this->serializer->toArray($context));
+        $arrayContext = $this->serializer->toArray($context);
+        if (false === is_array($arrayContext)) {
+            $arrayContext = [];
+        }
+        $this->appLogger->error('[Authorization] ' . $throwable->getMessage(), $arrayContext);
     }
 
     private function createRedirectResponseForRequest(Request $request, UserOAuthLoginState $loginState): RedirectResponse

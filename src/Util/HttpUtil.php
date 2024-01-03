@@ -73,6 +73,7 @@ final class HttpUtil
         if (empty($rawRefreshToken)) {
             throw InvalidRefreshTokenException::create();
         }
+        /** @psalm-suppress PossiblyUndefinedArrayOffset */
         [$userId, $tokenHash] = explode(RefreshTokenDto::REFRESH_TOKEN_SEPARATOR, $rawRefreshToken, 2);
         if (ConditionHelper::isOneOfVariablesEmpty($userId, $tokenHash)) {
             throw InvalidRefreshTokenException::create();
@@ -92,6 +93,7 @@ final class HttpUtil
     public function storeJwtOnResponse(Response $response, Token $token, DateTimeImmutable $expiresAt = null): void
     {
         $rawToken = $token->toString();
+        /** @psalm-suppress PossiblyUndefinedArrayOffset */
         [$header, $claims, $signature] = explode('.', $rawToken, 3);
 
         if (ConditionHelper::isOneOfVariablesEmpty($header, $claims, $signature)) {

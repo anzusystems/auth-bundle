@@ -2,6 +2,8 @@
 <psalm
     resolveFromConfigFile="true"
     findUnusedVariablesAndParams="true"
+    findUnusedBaselineEntry="false"
+    findUnusedCode="false"
     usePhpDocMethodsWithoutMagicCall="true"
     allowStringToStandInForClass="false"
     memoizeMethodCallResults="true"
@@ -13,7 +15,6 @@
         <directory name="src"/>
         <ignoreFiles>
             <directory name="./vendor"/>
-            <directory name="./var"/>
             <file name="ecs.php"/>
             <file name="src/DependencyInjection/Configuration.php"/>
         </ignoreFiles>

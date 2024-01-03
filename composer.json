@@ -24,7 +24,7 @@
         "slevomat/coding-standard": "^8.5",
         "symfony/test-pack": "^1.0",
         "symplify/easy-coding-standard": "^11.1",
-        "vimeo/psalm": "^4.27"
+        "vimeo/psalm": "^5.0"
     },
     "autoload": {
         "psr-4": {

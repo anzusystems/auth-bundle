@@ -14,7 +14,7 @@
         "php": ">=8.1",
         "ext-json": "*",
         "ext-redis": "*",
-        "anzusystems/common-bundle": "^1.0|^2.0|^3.0",
+        "anzusystems/common-bundle": "^1.0|^2.0|^3.0|^4.0",
         "doctrine/common": "^3.3",
         "lcobucci/jwt": "^4.2"
     },
@@ -24,7 +24,7 @@
         "slevomat/coding-standard": "^8.5",
         "symfony/test-pack": "^1.0",
         "symplify/easy-coding-standard": "^11.1",
-        "vimeo/psalm": "^4.27"
+        "vimeo/psalm": "^5.0"
     },
     "autoload": {
         "psr-4": {

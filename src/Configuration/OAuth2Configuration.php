@@ -21,6 +21,7 @@ final class OAuth2Configuration
         private readonly string $ssoClientId,
         private readonly string $ssoClientSecret,
         private readonly string $ssoPublicCert,
+        /** @var list<string> */
         private readonly array $ssoScopes,
         private readonly string $ssoScopeDelimiter,
         private readonly bool $considerAccessTokenAsJwt,

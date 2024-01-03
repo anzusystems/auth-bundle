@@ -29,6 +29,7 @@ final class ApiTokenAuthenticator extends AbstractAuthenticator
 
     public function authenticate(Request $request): Passport
     {
+        /** @psalm-suppress PossiblyUndefinedArrayOffset */
         [$userId, $token] = $this->getCredentials($request);
         if (empty($userId) || empty($token)) {
             throw new AuthenticationException('Unauthorized request!');
@@ -55,9 +56,6 @@ final class ApiTokenAuthenticator extends AbstractAuthenticator
         ], Response::HTTP_UNAUTHORIZED);
     }
 
-    /**
-     * @return list<AbstractString>
-     */
     private function getCredentials(Request $request): array
     {
         return u((string) $request->headers->get('Authorization'))

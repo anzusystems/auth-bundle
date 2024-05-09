@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Serializer\Handler\Handlers;
 
+use AnzuSystems\SerializerBundle\Context\SerializationContext;
 use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use AnzuSystems\SerializerBundle\Handler\Handlers\AbstractHandler;
 use AnzuSystems\SerializerBundle\Metadata\Metadata;
@@ -14,7 +15,7 @@ use Lcobucci\JWT\Token\Plain;
 
 final class JwtHandler extends AbstractHandler
 {
-    public function serialize(mixed $value, Metadata $metadata): ?string
+    public function serialize(mixed $value, Metadata $metadata, SerializationContext $context): ?string
     {
         if (null === $value) {
             return null;

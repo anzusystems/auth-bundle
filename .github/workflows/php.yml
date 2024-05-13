@@ -10,10 +10,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - php-version: 8.1
-            docker-image: 'anzusystems/php:1.0.0-php81-cli'
           - php-version: 8.2
-            docker-image: 'anzusystems/php:1.0.0-php82-cli'
+            docker-image: 'anzusystems/php:3.3.0-php82-cli'
+          - php-version: 8.3
+            docker-image: 'anzusystems/php:3.3.0-php83-cli'
 
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest

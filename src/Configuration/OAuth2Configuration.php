@@ -10,12 +10,14 @@ use Psr\Cache\CacheItemPoolInterface;
 final class OAuth2Configuration
 {
     public const SSO_USER_ID_PLACEHOLDER_URL = '{userId}';
+    public const SSO_USER_EMAIL_PLACEHOLDER_URL = '{email}';
 
     public function __construct(
         private readonly string $ssoAccessTokenUrl,
         private readonly string $ssoAuthorizeUrl,
         private readonly string $ssoRedirectUrl,
         private readonly string $ssoUserInfoUrl,
+        private readonly string $ssoUserInfoByEmailUrl,
         /** @var class-string<SsoUserDto> */
         private readonly string $ssoUserInfoClass,
         private readonly string $ssoClientId,
@@ -46,6 +48,11 @@ final class OAuth2Configuration
         }
 
         return str_replace(self::SSO_USER_ID_PLACEHOLDER_URL, $userId, $this->ssoUserInfoUrl);
+    }
+
+    public function getSsoUserInfoByEmailUrl(string $email): string
+    {
+        return str_replace(self::SSO_USER_EMAIL_PLACEHOLDER_URL, urlencode($email), $this->ssoUserInfoByEmailUrl);
     }
 
     /**

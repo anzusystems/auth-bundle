@@ -95,6 +95,7 @@ final class AnzuSystemsAuthExtension extends Extension
                     ->setArgument('$ssoAuthorizeUrl', $oauth2Section['authorize_url'])
                     ->setArgument('$ssoRedirectUrl', $oauth2Section['redirect_url'])
                     ->setArgument('$ssoUserInfoUrl', $oauth2Section['user_info_url'])
+                    ->setArgument('$ssoUserInfoByEmailUrl', $oauth2Section['user_info_by_email_url'])
                     ->setArgument('$ssoUserInfoClass', $oauth2Section['user_info_class'])
                     ->setArgument('$ssoClientId', $oauth2Section['client_id'])
                     ->setArgument('$ssoClientSecret', $oauth2Section['client_secret'])

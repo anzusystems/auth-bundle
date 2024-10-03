@@ -70,6 +70,25 @@ final class OAuth2HttpClient
         }
     }
 
+    public function getSsoUserInfoByEmail(string $email): SsoUserDto
+    {
+        try {
+            $response = $this->client->request(
+                method: Request::METHOD_GET,
+                url: $this->configuration->getSsoUserInfoByEmailUrl($email),
+                options: [
+                    'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken(),
+                ]
+            );
+
+            return $this->serializer->deserialize($response->getContent(), $this->configuration->getSsoUserInfoClass());
+        } catch (ExceptionInterface $exception) {
+            throw UnsuccessfulUserInfoRequestException::create('User info request failed!', $exception);
+        } catch (SerializerException $exception) {
+            throw UnsuccessfulUserInfoRequestException::create('User info response deserialization failed!', $exception);
+        }
+    }
+
     /**
      * @throws UnsuccessfulAccessTokenRequestException
      *

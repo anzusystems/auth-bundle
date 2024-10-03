@@ -146,6 +146,7 @@ authorization:
       user_repository_service_id: App\Repository\UserRepository
       authorize_url: 'https://example.com/authorize-url'
       user_info_url: 'https://example.com/user-info-url'
+      user_info_by_email_url: 'https://example.com/user-info-by-email-url'
       state_token_salt: 'qux-quux'
       access_token_url: 'https://example.com/access-token-url'
       redirect_url: 'https://example.com/redirect-url'

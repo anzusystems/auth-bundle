@@ -137,6 +137,13 @@ final class Configuration implements ConfigurationInterface
                         OAuth2Configuration::SSO_USER_ID_PLACEHOLDER_URL,
                     ))
                 ->end()
+                ->scalarNode('user_info_by_email_url')
+                    ->defaultValue('')
+                    ->info(sprintf(
+                        'You can use placeholder "%s", which will be replaced with user email.',
+                        OAuth2Configuration::SSO_USER_ID_PLACEHOLDER_URL,
+                    ))
+                ->end()
                 ->scalarNode('access_token_cache')
                     ->cannotBeEmpty()
                     ->defaultValue('cache.app')

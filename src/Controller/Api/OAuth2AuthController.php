@@ -8,13 +8,14 @@ use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
 use AnzuSystems\AuthBundle\Util\StatelessTokenUtil;
+use AnzuSystems\Contracts\Exception\AnzuException;
 use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use OpenApi\Attributes as OA;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 
 #[Route(name: 'auth_')]
 #[OA\Tag('Authorization')]
@@ -42,6 +43,7 @@ final class OAuth2AuthController extends AbstractAuthController
 
     /**
      * @throws SerializerException
+     * @throws AnzuException
      */
     #[Route('authorize', name: 'authorize', methods: [Request::METHOD_GET])]
     public function callbackAuthorize(Request $request): Response

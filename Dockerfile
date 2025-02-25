@@ -1,4 +1,4 @@
-FROM anzusystems/php:3.1.0-php83-cli
+FROM anzusystems/php:4.0.0-php83-cli
 #
 ### Basic arguments and variables
 ARG DOCKER_USER_ID

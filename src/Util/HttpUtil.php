@@ -22,8 +22,8 @@ use function Symfony\Component\String\u;
 
 final class HttpUtil
 {
-    private const COOKIE_DEVICE_ID_TTL = 31_536_000; // 1 year
-    private const COOKIE_JWT_SUB_TTL = 60;
+    private const int COOKIE_DEVICE_ID_TTL = 31_536_000; // 1 year
+    private const int COOKIE_JWT_SUB_TTL = 60;
 
     public function __construct(
         private readonly CookieConfiguration $cookieConfiguration,

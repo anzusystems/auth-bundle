@@ -63,10 +63,11 @@ final class GrantAccessByOAuth2TokenProcess
             return $this->createRedirectResponseForRequest($request, UserOAuthLoginState::FailureSsoCommunicationFailed);
         }
 
-        if ($accessTokenDto->getJwt()) {
+        $jwt = $accessTokenDto->getJwt();
+        if ($jwt) {
             // validate jwt
             try {
-                $this->validateOAuth2AccessTokenProcess->execute($accessTokenDto->getJwt());
+                $this->validateOAuth2AccessTokenProcess->execute($jwt);
             } catch (InvalidJwtException $exception) {
                 $this->logException($request, $exception);
 

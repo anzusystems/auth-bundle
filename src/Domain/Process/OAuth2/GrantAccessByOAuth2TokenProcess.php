@@ -30,8 +30,10 @@ final class GrantAccessByOAuth2TokenProcess
 {
     use SerializerAwareTrait;
 
-    public const AUTH_METHOD_SSO_ID = 'sso_id';
-    public const AUTH_METHOD_SSO_EMAIL = 'sso_email';
+    public const string AUTH_METHOD_SSO_ID = 'sso_id';
+    public const string AUTH_METHOD_SSO_EMAIL = 'sso_email';
+    public const string LOGIN_STATE_QUERY_PARAM = 'loginState';
+    public const string TIMESTAMP_QUERY_PARAM = 'timestamp';
 
     public function __construct(
         private readonly OAuth2HttpClient $OAuth2HttpClient,
@@ -61,10 +63,11 @@ final class GrantAccessByOAuth2TokenProcess
             return $this->createRedirectResponseForRequest($request, UserOAuthLoginState::FailureSsoCommunicationFailed);
         }
 
-        if ($accessTokenDto->getJwt()) {
+        $jwt = $accessTokenDto->getJwt();
+        if ($jwt) {
             // validate jwt
             try {
-                $this->validateOAuth2AccessTokenProcess->execute($accessTokenDto->getJwt());
+                $this->validateOAuth2AccessTokenProcess->execute($jwt);
             } catch (InvalidJwtException $exception) {
                 $this->logException($request, $exception);
 
@@ -98,6 +101,18 @@ final class GrantAccessByOAuth2TokenProcess
         }
     }
 
+    public function createRedirectResponseForRequest(Request $request, UserOAuthLoginState $loginState): RedirectResponse
+    {
+        $redirectUrl = $this->httpUtil->getAuthRedirectUrlFromRequest($request);
+        $redirectUrl .= '?';
+        $redirectUrl .= http_build_query([
+            self::LOGIN_STATE_QUERY_PARAM => $loginState->toString(),
+            self::TIMESTAMP_QUERY_PARAM => time(),
+        ]);
+
+        return new RedirectResponse($redirectUrl);
+    }
+
     /**
      * @throws SerializerException
      */
@@ -109,14 +124,6 @@ final class GrantAccessByOAuth2TokenProcess
             $arrayContext = [];
         }
         $this->appLogger->error('[Authorization] ' . $throwable->getMessage(), $arrayContext);
-    }
-
-    private function createRedirectResponseForRequest(Request $request, UserOAuthLoginState $loginState): RedirectResponse
-    {
-        $redirectUrl = $this->httpUtil->getAuthRedirectUrlFromRequest($request);
-        $redirectUrl .= '?loginState=' . $loginState->toString();
-
-        return new RedirectResponse($redirectUrl);
     }
 
     /**

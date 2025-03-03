@@ -10,10 +10,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - php-version: 8.2
-            docker-image: 'anzusystems/php:3.3.0-php82-cli'
           - php-version: 8.3
-            docker-image: 'anzusystems/php:3.3.0-php83-cli'
+            docker-image: 'anzusystems/php:4.0.0-php83-cli'
+          - php-version: 8.4
+            docker-image: 'anzusystems/php:4.0.0-php84-cli'
 
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
@@ -37,7 +37,7 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-ansi --no-interaction --no-scripts
 
       - name: Run Security check
-        run: local-php-security-checker --path=composer.lock
+        run: composer audit --no-scripts
 
       - name: Run ECS style check
         run: vendor/bin/ecs check -vv

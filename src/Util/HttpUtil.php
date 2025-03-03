@@ -22,7 +22,8 @@ use function Symfony\Component\String\u;
 
 final class HttpUtil
 {
-    private const COOKIE_DEVICE_ID_TTL = 31_536_000; // 1 year
+    private const int COOKIE_DEVICE_ID_TTL = 31_536_000; // 1 year
+    private const int COOKIE_JWT_SUB_TTL = 60;
 
     public function __construct(
         private readonly CookieConfiguration $cookieConfiguration,
@@ -101,6 +102,9 @@ final class HttpUtil
         }
 
         $lifetime = $expiresAt?->getTimestamp() ?? $this->jwtConfiguration->getLifetime();
+        // We want to prevent a situation where a cookie is still stored and sent with a request, but when the server validates it, it is already invalid.
+        // To avoid this, we subtract a few seconds from the expiration time and allow the user to refresh the token earlier.
+        $lifetime -= self::COOKIE_JWT_SUB_TTL;
         $payloadCookie = $this->createCookie(
             $this->cookieConfiguration->getJwtPayloadCookieName(),
             $header . '.' . $claims,

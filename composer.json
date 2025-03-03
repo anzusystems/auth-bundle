@@ -11,7 +11,7 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.3",
         "ext-json": "*",
         "ext-redis": "*",
         "anzusystems/common-bundle": "^7.0|^8.0",
@@ -24,7 +24,7 @@
         "slevomat/coding-standard": "^8.5",
         "symfony/test-pack": "^1.0",
         "symplify/easy-coding-standard": "^11.1",
-        "vimeo/psalm": "^5.0"
+        "vimeo/psalm": "^6.0"
     },
     "autoload": {
         "psr-4": {

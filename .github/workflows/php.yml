@@ -37,7 +37,7 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-ansi --no-interaction --no-scripts
 
       - name: Run Security check
-        run: local-php-security-checker --path=composer.lock
+        run: composer audit --no-scripts
 
       - name: Run ECS style check
         run: vendor/bin/ecs check -vv

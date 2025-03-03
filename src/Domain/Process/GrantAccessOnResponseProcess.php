@@ -7,6 +7,7 @@ namespace AnzuSystems\AuthBundle\Domain\Process;
 use AnzuSystems\AuthBundle\Configuration\CookieConfiguration;
 use AnzuSystems\AuthBundle\Configuration\JwtConfiguration;
 use AnzuSystems\AuthBundle\Contracts\RefreshTokenStorageInterface;
+use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Model\DeviceDto;
 use AnzuSystems\AuthBundle\Model\RefreshTokenDto;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
@@ -17,14 +18,14 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-final class GrantAccessOnResponseProcess
+final readonly class GrantAccessOnResponseProcess
 {
     public function __construct(
-        private readonly CookieConfiguration $cookieConfiguration,
-        private readonly JwtConfiguration $jwtConfiguration,
-        private readonly JwtUtil $jwtUtil,
-        private readonly HttpUtil $httpUtil,
-        private readonly RefreshTokenStorageInterface $refreshTokenStorage,
+        private CookieConfiguration $cookieConfiguration,
+        private JwtConfiguration $jwtConfiguration,
+        private JwtUtil $jwtUtil,
+        private HttpUtil $httpUtil,
+        private RefreshTokenStorageInterface $refreshTokenStorage,
     ) {
     }
 
@@ -52,6 +53,7 @@ final class GrantAccessOnResponseProcess
             $response->setData([
                 'access_token' => $jwt->toString(),
                 'refresh_token' => $refreshTokenDto->toString(),
+                GrantAccessByOAuth2TokenProcess::TIMESTAMP_QUERY_PARAM => time(),
             ]);
         }
 

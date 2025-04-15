@@ -20,7 +20,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 final class OAuth2HttpClient
 {
-    private const CLIENT_SERVICE_ACCESS_TOKEN_CACHE_KEY = 'sso_access_token_client_service';
+    private const string CLIENT_SERVICE_ACCESS_TOKEN_CACHE_KEY = 'sso_access_token_client_service';
 
     public function __construct(
         private readonly HttpClientInterface $client,
@@ -34,24 +34,20 @@ final class OAuth2HttpClient
      */
     public function requestAccessTokenByAuthCode(string $code): AccessTokenDto
     {
-        $accessToken = $this->sendTokenRequest($this->configuration->getSsoAccessTokenUrl(), [
+        return $this->sendTokenRequest($this->configuration->getSsoAccessTokenUrl(), [
             'grant_type' => 'authorization_code',
             'code' => $code,
             'client_id' => $this->configuration->getSsoClientId(),
             'client_secret' => $this->configuration->getSsoClientSecret(),
             'redirect_uri' => $this->configuration->getSsoRedirectUrl(),
         ]);
-
-        $this->storeAccessTokenToCache($this->getAccessTokenCacheItem(), $accessToken);
-
-        return $accessToken;
     }
 
     /**
      * @throws UnsuccessfulAccessTokenRequestException
      * @throws UnsuccessfulUserInfoRequestException
      */
-    public function getSsoUserInfo(?string $id = null): SsoUserDto
+    public function getSsoUserInfo(string $id): SsoUserDto
     {
         try {
             $response = $this->client->request(
@@ -59,6 +55,28 @@ final class OAuth2HttpClient
                 url: $this->configuration->getSsoUserInfoUrl($id),
                 options: [
                     'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken(),
+                ]
+            );
+
+            return $this->serializer->deserialize($response->getContent(), $this->configuration->getSsoUserInfoClass());
+        } catch (ExceptionInterface $exception) {
+            throw UnsuccessfulUserInfoRequestException::create('User info request failed!', $exception);
+        } catch (SerializerException $exception) {
+            throw UnsuccessfulUserInfoRequestException::create('User info response deserialization failed!', $exception);
+        }
+    }
+
+    /**
+     * @throws UnsuccessfulUserInfoRequestException
+     */
+    public function getCurrentSsoUserInfo(AccessTokenDto $token): SsoUserDto
+    {
+        try {
+            $response = $this->client->request(
+                method: Request::METHOD_GET,
+                url: $this->configuration->getSsoUserInfoUrl(),
+                options: [
+                    'auth_bearer' => $token->getAccessToken(),
                 ]
             );
 

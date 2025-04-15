@@ -135,7 +135,7 @@ final class GrantAccessByOAuth2TokenProcess
     {
         if (self::AUTH_METHOD_SSO_EMAIL === $this->authMethod) {
             // fetch user info
-            $ssoUser = $this->OAuth2HttpClient->getSsoUserInfo();
+            $ssoUser = $this->OAuth2HttpClient->getCurrentSsoUserInfo($accessTokenDto);
 
             return $this->oAuth2AuthUserRepository->findOneBySsoEmail($ssoUser->getEmail());
         }
@@ -149,7 +149,7 @@ final class GrantAccessByOAuth2TokenProcess
             }
 
             // otherwise fetch user info
-            $ssoUser = $this->OAuth2HttpClient->getSsoUserInfo();
+            $ssoUser = $this->OAuth2HttpClient->getCurrentSsoUserInfo($accessTokenDto);
 
             return $this->oAuth2AuthUserRepository->findOneBySsoUserId($ssoUser->getId());
         }

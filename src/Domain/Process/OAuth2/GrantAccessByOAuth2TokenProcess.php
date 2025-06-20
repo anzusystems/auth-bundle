@@ -7,6 +7,7 @@ namespace AnzuSystems\AuthBundle\Domain\Process\OAuth2;
 use AnzuSystems\AuthBundle\Contracts\AnzuAuthUserInterface;
 use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
+use AnzuSystems\AuthBundle\Event\AuthTargetUrlEvent;
 use AnzuSystems\AuthBundle\Exception\InvalidJwtException;
 use AnzuSystems\AuthBundle\Exception\UnsuccessfulAccessTokenRequestException;
 use AnzuSystems\AuthBundle\Exception\UnsuccessfulUserInfoRequestException;
@@ -21,6 +22,7 @@ use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use Exception;
 use Lcobucci\JWT\Token\RegisteredClaims;
 use Psr\Log\LoggerInterface;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -44,6 +46,7 @@ final class GrantAccessByOAuth2TokenProcess
         private readonly LoggerInterface $appLogger,
         private readonly LogContextFactory $contextFactory,
         private readonly string $authMethod,
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
     }
 
@@ -91,7 +94,7 @@ final class GrantAccessByOAuth2TokenProcess
         }
 
         try {
-            $response = $this->createRedirectResponseForRequest($request, UserOAuthLoginState::Success);
+            $response = $this->createRedirectResponseForRequest($request, UserOAuthLoginState::Success, $authUser);
 
             return $this->grantAccessOnResponseProcess->execute($authUser->getAuthId(), $request, $response);
         } catch (Exception $exception) {
@@ -101,7 +104,7 @@ final class GrantAccessByOAuth2TokenProcess
         }
     }
 
-    public function createRedirectResponseForRequest(Request $request, UserOAuthLoginState $loginState): RedirectResponse
+    public function createRedirectResponseForRequest(Request $request, UserOAuthLoginState $loginState, ?AnzuAuthUserInterface $authUser = null): RedirectResponse
     {
         $redirectUrl = $this->httpUtil->getAuthRedirectUrlFromRequest($request);
         $redirectUrl .= '?';
@@ -110,7 +113,10 @@ final class GrantAccessByOAuth2TokenProcess
             self::TIMESTAMP_QUERY_PARAM => time(),
         ]);
 
-        return new RedirectResponse($redirectUrl);
+        $event = new AuthTargetUrlEvent($redirectUrl, $request, $loginState, $authUser);
+        $this->eventDispatcher->dispatch($event, AuthTargetUrlEvent::NAME);
+
+        return new RedirectResponse($event->getTargetUrl());
     }
 
     /**

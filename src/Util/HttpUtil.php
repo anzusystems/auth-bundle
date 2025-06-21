@@ -190,7 +190,7 @@ final class HttpUtil
             $this->cookieConfiguration->isSecure(),
             $httpOnly,
             false,
-            Cookie::SAMESITE_STRICT
+            Cookie::SAMESITE_NONE
         );
     }
 

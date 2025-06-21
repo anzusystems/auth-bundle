@@ -11,7 +11,7 @@ use Symfony\Contracts\EventDispatcher\Event;
 
 final class AuthTargetUrlEvent extends Event
 {
-    public const string NAME = 'auth.targetUrl';
+    public const string NAME = 'anzu_auth.targetUrl';
 
     public function __construct(
         private string $targetUrl,

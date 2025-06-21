@@ -37,6 +37,7 @@ final class ApiTokenAuthenticator extends AbstractAuthenticator
             return $this->checkCredentials($token, $user);
         };
 
+        /** @psalm-suppress InvalidArgument */
         return new Passport(
             new UserBadge($userId->toString()),
             new CustomCredentials($credentialsChecker, $token->toString())

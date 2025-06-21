@@ -41,6 +41,7 @@ final class JwtAuthentication extends AbstractAuthenticator
             throw new AuthenticationException(previous: $exception);
         }
 
+        /** @psalm-suppress ArgumentTypeCoercion */
         return new Passport(
             new UserBadge((string) $jwtToken->claims()->get(RegisteredClaims::SUBJECT)),
             new CustomCredentials($this->checkCredentials(...), $jwtToken),

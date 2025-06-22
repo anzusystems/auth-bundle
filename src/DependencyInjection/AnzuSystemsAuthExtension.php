@@ -38,6 +38,7 @@ final class AnzuSystemsAuthExtension extends Extension
 
         $cookieSection = $processedConfig['cookie'];
         $container->setParameter('anzu_systems.auth_bundle.cookie.domain', $cookieSection['domain']);
+        $container->setParameter('anzu_systems.auth_bundle.cookie.samesite', $cookieSection['samesite']);
         $container->setParameter('anzu_systems.auth_bundle.cookie.secure', $cookieSection['secure']);
         $container->setParameter('anzu_systems.auth_bundle.cookie.device_id_name', $cookieSection['device_id_name']);
         $container->setParameter('anzu_systems.auth_bundle.cookie.jwt.payload_part_name', $cookieSection['jwt']['payload_part_name']);

@@ -13,6 +13,7 @@ use Exception;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\HttpFoundation\Cookie;
 
 final class Configuration implements ConfigurationInterface
 {
@@ -41,6 +42,11 @@ final class Configuration implements ConfigurationInterface
             ->addDefaultsIfNotSet()
             ->children()
                 ->scalarNode('domain')->defaultValue(null)->end()
+                ->enumNode('samesite')
+                    ->values([Cookie::SAMESITE_NONE, Cookie::SAMESITE_LAX, Cookie::SAMESITE_STRICT])
+                    ->defaultValue(Cookie::SAMESITE_STRICT)
+                    ->info('SameSite attribute for cookies (lax, strict or none)')
+                ->end()
                 ->booleanNode('secure')->isRequired()->end()
                 ->scalarNode('device_id_name')->defaultValue('anz_di')->end()
                 ->arrayNode('jwt')

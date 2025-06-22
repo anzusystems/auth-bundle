@@ -9,6 +9,7 @@ final class CookieConfiguration
     public function __construct(
         private readonly ?string $domain,
         private readonly bool $secure,
+        private readonly ?string $sameSite,
         private readonly string $jwtPayloadCookieName,
         private readonly string $jwtSignatureCookieName,
         private readonly string $deviceIdCookieName,
@@ -21,6 +22,11 @@ final class CookieConfiguration
     public function getDomain(): ?string
     {
         return $this->domain;
+    }
+
+    public function getSameSite(): ?string
+    {
+        return $this->sameSite;
     }
 
     public function isSecure(): bool

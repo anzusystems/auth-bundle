@@ -32,6 +32,7 @@ final class HttpUtilTest extends TestCase
 
         $cookieConfiguration = new CookieConfiguration(
             domain: '.example.com',
+            sameSite: 'strict',
             secure: true,
             jwtPayloadCookieName: 'qux',
             jwtSignatureCookieName: 'quux',

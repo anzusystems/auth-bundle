@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Configuration;
 
+use Symfony\Component\HttpFoundation\Cookie;
+
 final class CookieConfiguration
 {
     public function __construct(
         private readonly ?string $domain,
         private readonly bool $secure,
+        /**
+         * @var Cookie::SAMESITE_*|''|null
+         */
         private readonly ?string $sameSite,
         private readonly string $jwtPayloadCookieName,
         private readonly string $jwtSignatureCookieName,
@@ -24,6 +29,9 @@ final class CookieConfiguration
         return $this->domain;
     }
 
+    /**
+     * @return Cookie::SAMESITE_*|''|null
+     */
     public function getSameSite(): ?string
     {
         return $this->sameSite;

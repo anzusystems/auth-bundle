@@ -66,7 +66,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $loader->load([$config], $this->configuration);
 
         $this->assertParameter('.example.com', 'anzu_systems.auth_bundle.cookie.domain');
-        $this->assertParameter('lax', 'anzu_systems.auth_bundle.cookie.samesite');
+        $this->assertParameter('lax', 'anzu_systems.auth_bundle.cookie.same_site');
         $this->assertParameter(true, 'anzu_systems.auth_bundle.cookie.secure');
         $this->assertParameter('anz_di', 'anzu_systems.auth_bundle.cookie.device_id_name');
         $this->assertParameter('anz_jp', 'anzu_systems.auth_bundle.cookie.jwt.payload_part_name');
@@ -130,7 +130,7 @@ EOF;
         $yaml = <<<EOF
 cookie:
     domain: .example.com
-    samesite: lax
+    same_site: lax
     secure: true
 jwt:
     public_cert: 'foo_public_cert'

@@ -18,7 +18,7 @@ return static function (ContainerConfigurator $configurator): void {
     $services
         ->set(CookieConfiguration::class)
         ->arg('$domain', param('anzu_systems.auth_bundle.cookie.domain'))
-        ->arg('$sameSite', param('anzu_systems.auth_bundle.cookie.samesite'))
+        ->arg('$sameSite', param('anzu_systems.auth_bundle.cookie.same_site'))
         ->arg('$secure', param('anzu_systems.auth_bundle.cookie.secure'))
         ->arg('$deviceIdCookieName', param('anzu_systems.auth_bundle.cookie.device_id_name'))
         ->arg('$jwtPayloadCookieName', param('anzu_systems.auth_bundle.cookie.jwt.payload_part_name'))

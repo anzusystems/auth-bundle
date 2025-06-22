@@ -42,7 +42,7 @@ final class Configuration implements ConfigurationInterface
             ->addDefaultsIfNotSet()
             ->children()
                 ->scalarNode('domain')->defaultValue(null)->end()
-                ->enumNode('samesite')
+                ->enumNode('same_site')
                     ->values([Cookie::SAMESITE_NONE, Cookie::SAMESITE_LAX, Cookie::SAMESITE_STRICT])
                     ->defaultValue(Cookie::SAMESITE_STRICT)
                     ->info('SameSite attribute for cookies (lax, strict or none)')

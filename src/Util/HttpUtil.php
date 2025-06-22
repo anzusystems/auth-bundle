@@ -91,7 +91,7 @@ final class HttpUtil
     /**
      * @throws InvalidJwtException
      */
-    public function storeJwtOnResponse(Response $response, Token $token, DateTimeImmutable $expiresAt = null): void
+    public function storeJwtOnResponse(Response $response, Token $token, ?DateTimeImmutable $expiresAt = null): void
     {
         $rawToken = $token->toString();
         /** @psalm-suppress PossiblyUndefinedArrayOffset */

@@ -24,7 +24,7 @@ final class RefreshTokenProcess
     /**
      * @throws Exception
      */
-    public function execute(Request $request, Response $response = null): Response
+    public function execute(Request $request, ?Response $response = null): Response
     {
         $response ??= new JsonResponse();
         try {

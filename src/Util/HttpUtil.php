@@ -91,7 +91,7 @@ final class HttpUtil
     /**
      * @throws InvalidJwtException
      */
-    public function storeJwtOnResponse(Response $response, Token $token, DateTimeImmutable $expiresAt = null): void
+    public function storeJwtOnResponse(Response $response, Token $token, ?DateTimeImmutable $expiresAt = null): void
     {
         $rawToken = $token->toString();
         /** @psalm-suppress PossiblyUndefinedArrayOffset */
@@ -190,7 +190,7 @@ final class HttpUtil
             $this->cookieConfiguration->isSecure(),
             $httpOnly,
             false,
-            Cookie::SAMESITE_STRICT
+            $this->cookieConfiguration->getSameSite(),
         );
     }
 

@@ -35,7 +35,7 @@ final class JwtUtil
      *
      * @throws MissingConfigurationException
      */
-    public function create(string $authId, DateTimeImmutable $expiresAt = null, array $claims = []): Plain
+    public function create(string $authId, ?DateTimeImmutable $expiresAt = null, array $claims = []): Plain
     {
         $privateCert = $this->jwtConfiguration->getPrivateCert();
 

@@ -32,7 +32,7 @@ final readonly class GrantAccessOnResponseProcess
     /**
      * @throws Exception
      */
-    public function execute(string $userId, Request $request, Response $response = null): Response
+    public function execute(string $userId, Request $request, ?Response $response = null): Response
     {
         $jwtExpiresAt = new DateTimeImmutable(sprintf('+%d seconds', $this->jwtConfiguration->getLifetime()));
         $jwt = $this->jwtUtil->create($userId, $jwtExpiresAt);

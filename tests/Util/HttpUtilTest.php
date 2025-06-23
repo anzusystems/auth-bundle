@@ -32,6 +32,7 @@ final class HttpUtilTest extends TestCase
 
         $cookieConfiguration = new CookieConfiguration(
             domain: '.example.com',
+            sameSite: 'strict',
             secure: true,
             jwtPayloadCookieName: 'qux',
             jwtSignatureCookieName: 'quux',
@@ -76,10 +77,12 @@ final class HttpUtilTest extends TestCase
         $this->assertSame($token->toString(), $payloadCookie->getValue() . '.' . $signCookie->getValue());
         $this->assertTrue($payloadCookie->isSecure());
         $this->assertFalse($payloadCookie->isHttpOnly());
+        $this->assertSame('strict', $payloadCookie->getSameSite());
         $this->assertSame('.example.com', $payloadCookie->getDomain());
 
         $this->assertTrue($signCookie->isSecure());
         $this->assertTrue($signCookie->isHttpOnly());
+        $this->assertSame('strict', $payloadCookie->getSameSite());
         $this->assertSame('.example.com', $signCookie->getDomain());
     }
 }

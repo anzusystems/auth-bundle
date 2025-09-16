@@ -22,10 +22,12 @@ use AnzuSystems\SerializerBundle\Exception\SerializerException;
 use Exception;
 use Lcobucci\JWT\Token\RegisteredClaims;
 use Psr\Log\LoggerInterface;
-use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
+use Symfony\Contracts\HttpClient\Exception\HttpExceptionInterface;
 use Throwable;
 
 final class GrantAccessByOAuth2TokenProcess
@@ -124,13 +126,27 @@ final class GrantAccessByOAuth2TokenProcess
      */
     private function logException(Request $request, Throwable $throwable): void
     {
+        $context = $this->contextFactory->buildFromRequest($request);
+
         $content = $throwable->getTraceAsString();
         $prevException = $throwable->getPrevious();
         if ($prevException) {
             $content .= "\nPrevious exception:\n" . $prevException->getTraceAsString();
         }
+        if ($prevException instanceof HttpExceptionInterface) {
+            $response = $prevException->getResponse();
+            try {
+                $context
+                    ->setHttpStatus($response->getStatusCode())
+                    ->setResponse($response->getContent())
+                ;
+            } catch (ExceptionInterface $responseException) {
+                $context
+                    ->setResponse(sprintf('Failed to retrieve a response content! (error: %s)', $responseException->getMessage()))
+                ;
+            }
+        }
 
-        $context = $this->contextFactory->buildFromRequest($request);
         $context->setContent($content);
         $arrayContext = $this->serializer->toArray($context);
         if (false === is_array($arrayContext)) {

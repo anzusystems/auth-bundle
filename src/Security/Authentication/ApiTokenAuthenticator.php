@@ -58,10 +58,15 @@ final class ApiTokenAuthenticator extends AbstractAuthenticator
 
     private function getCredentials(Request $request): array
     {
-        return u((string) $request->headers->get('Authorization'))
+        $credentials = u((string) $request->headers->get('Authorization'))
             ->replaceMatches('~Bearer[\s+]~', '')
             ->trim()
             ->split(':', 2);
+        if (2 === count($credentials)) {
+            return $credentials;
+        }
+
+        return [null, null];
     }
 
     private function checkCredentials(string $token, ApiTokenUserInterface $user): bool

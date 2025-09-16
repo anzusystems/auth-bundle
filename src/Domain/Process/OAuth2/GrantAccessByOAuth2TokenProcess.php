@@ -146,6 +146,9 @@ final class GrantAccessByOAuth2TokenProcess
                 ;
             }
         }
+        if ($throwable instanceof UnsuccessfulAccessTokenRequestException) {
+            $context->setParams($throwable->getBodyParams());
+        }
 
         $context->setContent($content);
         $arrayContext = $this->serializer->toArray($context);

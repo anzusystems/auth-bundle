@@ -148,7 +148,7 @@ final class OAuth2HttpClient
                 $this->serializer->deserialize($response->getContent(), OpaqueAccessTokenResponseDto::class)
             );
         } catch (ExceptionInterface $exception) {
-            throw UnsuccessfulAccessTokenRequestException::create('Token request failed!', $exception);
+            throw UnsuccessfulAccessTokenRequestException::create('Token request failed!', $exception)->setBodyParams($bodyParameters);
         } catch (SerializerException $exception) {
             throw UnsuccessfulAccessTokenRequestException::create('Invalid jwt token response!', $exception);
         }

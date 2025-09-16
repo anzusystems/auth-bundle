@@ -124,7 +124,14 @@ final class GrantAccessByOAuth2TokenProcess
      */
     private function logException(Request $request, Throwable $throwable): void
     {
+        $content = $throwable->getTraceAsString();
+        $prevException = $throwable->getPrevious();
+        if ($prevException) {
+            $content .= "\nPrevious exception:\n" . $prevException->getTraceAsString();
+        }
+
         $context = $this->contextFactory->buildFromRequest($request);
+        $context->setContent($content);
         $arrayContext = $this->serializer->toArray($context);
         if (false === is_array($arrayContext)) {
             $arrayContext = [];

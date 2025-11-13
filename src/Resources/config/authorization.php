@@ -9,6 +9,8 @@ use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
 use AnzuSystems\AuthBundle\Event\Listener\LogoutListener;
 use AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler;
 use AnzuSystems\AuthBundle\Security\AuthenticationSuccessHandler;
+use AnzuSystems\AuthBundle\Security\Http\EventListener\UserProviderListener;
+use Symfony\Component\Security\Http\Event\CheckPassportEvent;
 
 return static function (ContainerConfigurator $configurator): void {
     $services = $configurator->services();
@@ -37,5 +39,13 @@ return static function (ContainerConfigurator $configurator): void {
         ->set(LogoutListener::class)
         ->autoconfigure()
         ->autowire()
+    ;
+
+    $services
+        ->set(UserProviderListener::class)
+        ->args([
+            service('security.user_providers'),
+        ])
+        ->tag('kernel.event_listener', ['event' => CheckPassportEvent::class, 'priority' => 1024, 'method' => 'checkPassport'])
     ;
 };

@@ -13,7 +13,9 @@ jobs:
           - php-version: 8.3
             docker-image: 'anzusystems/php:4.1.0-php83-cli'
           - php-version: 8.4
-            docker-image: 'anzusystems/php:4.1.0-php84-cli'
+            docker-image: 'anzusystems/php:5.0.0-php84-cli'
+          - php-version: 8.5
+            docker-image: 'anzusystems/php:5.0.0-php85-cli'
 
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest

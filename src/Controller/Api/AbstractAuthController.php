@@ -33,7 +33,6 @@ abstract class AbstractAuthController extends AbstractAnzuApiController
         return $this->refreshTokenProcess->execute($request);
     }
 
-
     #[Route('logout', name: 'logout', methods: [Request::METHOD_GET])]
     #[OA\Response(
         response: Response::HTTP_FOUND,

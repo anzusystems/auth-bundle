@@ -40,14 +40,14 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertParameter('anz_js', 'anzu_systems.auth_bundle.cookie.jwt.signature_part_name');
 
         $this->assertParameter('anz_rt', 'anzu_systems.auth_bundle.cookie.refresh_token.name');
-        $this->assertParameter(31536000, 'anzu_systems.auth_bundle.cookie.refresh_token.lifetime');
+        $this->assertParameter(31_536_000, 'anzu_systems.auth_bundle.cookie.refresh_token.lifetime');
         $this->assertParameter('anz_rte', 'anzu_systems.auth_bundle.cookie.refresh_token.existence_name');
 
         $this->assertParameter('anz', 'anzu_systems.auth_bundle.jwt.audience');
         $this->assertParameter('ES256', 'anzu_systems.auth_bundle.jwt.algorithm');
         $this->assertParameter('foo_public_cert', 'anzu_systems.auth_bundle.jwt.public_cert');
         $this->assertParameter('foo_private_cert', 'anzu_systems.auth_bundle.jwt.private_cert');
-        $this->assertParameter(3600, 'anzu_systems.auth_bundle.jwt.lifetime');
+        $this->assertParameter(3_600, 'anzu_systems.auth_bundle.jwt.lifetime');
 
         $this->assertNotHasDefinition(AuthenticationSuccessHandler::class);
         $this->assertNotHasDefinition(AuthenticationFailureHandler::class);
@@ -74,15 +74,14 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertParameter('anz_js', 'anzu_systems.auth_bundle.cookie.jwt.signature_part_name');
 
         $this->assertParameter('anz_rt', 'anzu_systems.auth_bundle.cookie.refresh_token.name');
-        $this->assertParameter(31536000, 'anzu_systems.auth_bundle.cookie.refresh_token.lifetime');
+        $this->assertParameter(31_536_000, 'anzu_systems.auth_bundle.cookie.refresh_token.lifetime');
         $this->assertParameter('anz_rte', 'anzu_systems.auth_bundle.cookie.refresh_token.existence_name');
 
         $this->assertParameter('anz', 'anzu_systems.auth_bundle.jwt.audience');
         $this->assertParameter('ES256', 'anzu_systems.auth_bundle.jwt.algorithm');
         $this->assertParameter('foo_public_cert', 'anzu_systems.auth_bundle.jwt.public_cert');
         $this->assertParameter('foo_private_cert', 'anzu_systems.auth_bundle.jwt.private_cert');
-        $this->assertParameter(3600, 'anzu_systems.auth_bundle.jwt.lifetime');
-
+        $this->assertParameter(3_600, 'anzu_systems.auth_bundle.jwt.lifetime');
 
         $this->assertHasDefinition(AuthenticationSuccessHandler::class);
         $this->assertHasDefinition(AuthenticationFailureHandler::class);

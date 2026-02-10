@@ -36,7 +36,7 @@ final class JwtHandler extends AbstractHandler
             return null;
         }
 
-        if (false === is_string($value)) {
+        if (false === is_string($value) || '' === $value) {
             throw new SerializerException('Value must be a type of valid JWT string');
         }
 

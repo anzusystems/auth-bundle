@@ -46,6 +46,6 @@ return static function (ContainerConfigurator $configurator): void {
         ->args([
             service('security.user_providers'),
         ])
-        ->tag('kernel.event_listener', ['event' => CheckPassportEvent::class, 'priority' => 1024, 'method' => 'checkPassport'])
+        ->tag('kernel.event_listener', ['event' => CheckPassportEvent::class, 'priority' => 1_024, 'method' => 'checkPassport'])
     ;
 };

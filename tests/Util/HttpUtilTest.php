@@ -39,7 +39,7 @@ final class HttpUtilTest extends TestCase
             deviceIdCookieName: 'corge',
             refreshTokenCookieName: 'garply',
             refreshTokenExistenceCookieName: 'grault',
-            refreshTokenLifetime: 3600,
+            refreshTokenLifetime: 3_600,
         );
 
         $this->httpUtil = new HttpUtil(
@@ -63,14 +63,14 @@ final class HttpUtilTest extends TestCase
         /** @var Cookie $payloadCookie */
         $payloadCookie = current(
             array_filter($cookies, static function (Cookie $cookie) {
-                return $cookie->getName() === 'qux';
+                return 'qux' === $cookie->getName();
             })
         );
 
         /** @var Cookie $signCookie */
         $signCookie = current(
             array_filter($cookies, static function (Cookie $cookie) {
-                return $cookie->getName() === 'quux';
+                return 'quux' === $cookie->getName();
             })
         );
 

@@ -22,7 +22,6 @@ final class AccessTokenDto
         $this->jwt = $accessTokenJwt;
     }
 
-
     public function getJwt(): ?Plain
     {
         return $this->jwt;

@@ -12,18 +12,25 @@ final class OAuth2Configuration
     public const SSO_USER_ID_PLACEHOLDER_URL = '{userId}';
     public const SSO_USER_EMAIL_PLACEHOLDER_URL = '{email}';
 
+    /**
+     * @param non-empty-string $ssoClientId
+     */
     public function __construct(
         private readonly string $ssoAccessTokenUrl,
         private readonly string $ssoAuthorizeUrl,
         private readonly string $ssoRedirectUrl,
         private readonly string $ssoUserInfoUrl,
         private readonly string $ssoUserInfoByEmailUrl,
-        /** @var class-string<SsoUserDto> */
+        /**
+         * @var class-string<SsoUserDto>
+         */
         private readonly string $ssoUserInfoClass,
         private readonly string $ssoClientId,
         private readonly string $ssoClientSecret,
         private readonly string $ssoPublicCert,
-        /** @var list<string> */
+        /**
+         * @var list<string>
+         */
         private readonly array $ssoScopes,
         private readonly string $ssoScopeDelimiter,
         private readonly bool $considerAccessTokenAsJwt,
@@ -81,6 +88,9 @@ final class OAuth2Configuration
         return $this->ssoRedirectUrl;
     }
 
+    /**
+     * @return non-empty-string
+     */
     public function getSsoClientId(): string
     {
         return $this->ssoClientId;

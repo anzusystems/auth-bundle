@@ -35,9 +35,12 @@ final class ValidateOAuth2AccessTokenProcess
             throw new InvalidJwtException('Please configure SSO public certificate.');
         }
 
+        /** @psalm-var non-empty-string $subject */
+        $subject = (string) $token->claims()->get(RegisteredClaims::SUBJECT);
+
         $constraints = [
             new PermittedFor($this->OAuth2Configuration->getSsoClientId()),
-            new RelatedTo((string) $token->claims()->get(RegisteredClaims::SUBJECT)),
+            new RelatedTo($subject),
             new SignedWith(
                 JwtAlgorithm::from((string) $token->headers()->get('alg'))->signer(),
                 InMemory::plainText($this->OAuth2Configuration->getSsoPublicCert())

@@ -11,17 +11,17 @@
         }
     ],
     "require": {
-        "php": ">=8.3",
+        "php": ">=8.4",
         "ext-json": "*",
         "ext-redis": "*",
-        "anzusystems/common-bundle": "^8.0|^9.0|^10.0",
+        "anzusystems/common-bundle": "^9.0|^10.0|^11.0",
         "doctrine/common": "^3.3",
         "lcobucci/clock": "^3.0",
         "lcobucci/jwt": "^5.5"
     },
     "require-dev": {
         "doctrine/orm": "^2.13|^3.0",
-        "nelmio/api-doc-bundle": "^4.38",
+        "nelmio/api-doc-bundle": "^5.9",
         "slevomat/coding-standard": "8.20.0",
         "symfony/test-pack": "^1.0",
         "symplify/easy-coding-standard": "^13.0",

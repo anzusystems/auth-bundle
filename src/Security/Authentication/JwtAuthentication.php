@@ -52,7 +52,8 @@ final class JwtAuthentication extends AbstractAuthenticator
             new CustomCredentials($this->checkCredentials(...), $jwtToken),
         );
 
-        $impersonatedBy = (string) $jwtToken->claims()->get(self::CLAIM_IMPERSONATED_BY, 0);
+        $impersonatedBy = (string) $jwtToken->claims()
+            ->get(self::CLAIM_IMPERSONATED_BY, 0);
         if (false === empty($impersonatedBy)) {
             $passport->addBadge(new ImpersonationBadge($impersonatedBy));
         }

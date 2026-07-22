@@ -58,7 +58,8 @@ final class JwtUtil
 
         /** @var Plain */
         return $builder->getToken(
-            $this->jwtConfiguration->getAlgorithm()->signer(),
+            $this->jwtConfiguration->getAlgorithm()
+                ->signer(),
             InMemory::plainText($privateCert)
         );
     }
@@ -66,13 +67,15 @@ final class JwtUtil
     public function validate(Token\Plain $token): bool
     {
         /** @psalm-var non-empty-string $subject */
-        $subject = (string) $token->claims()->get(RegisteredClaims::SUBJECT);
+        $subject = (string) $token->claims()
+            ->get(RegisteredClaims::SUBJECT);
 
         $constraints = [
             new PermittedFor($this->jwtConfiguration->getAudience()),
             new RelatedTo($subject),
             new SignedWith(
-                $this->jwtConfiguration->getAlgorithm()->signer(),
+                $this->jwtConfiguration->getAlgorithm()
+                    ->signer(),
                 InMemory::plainText($this->jwtConfiguration->getPublicCert())
             ),
             new LooseValidAt(SystemClock::fromUTC()),

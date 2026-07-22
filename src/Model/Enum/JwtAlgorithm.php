@@ -17,7 +17,7 @@ enum JwtAlgorithm: string implements EnumInterface
 
     public const Default = self::ES256;
 
-    public function signer(): Signer\Ecdsa | Signer\Rsa\Sha256
+    public function signer(): Signer\Ecdsa|Signer\Rsa\Sha256
     {
         return match ($this) {
             self::ES256 => new Signer\Ecdsa\Sha256(),

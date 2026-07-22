@@ -29,7 +29,10 @@ use Psr\Log\LoggerInterface;
 use Random\RandomException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Requirement\Requirement;
 
+#[Route('/personal-access-token', name: 'auth_personal_access_token_')]
 #[OA\Tag('PersonalAccessToken')]
 final class PersonalAccessTokenController extends AbstractAnzuApiController
 {
@@ -40,6 +43,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     ) {
     }
 
+    #[Route('', name: 'get_list', methods: [Request::METHOD_GET])]
     #[OAResponse([AbstractPersonalAccessToken::class]), OAResponseUnauthorized, OAResponseForbidden]
     public function getList(): JsonResponse
     {
@@ -53,6 +57,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     /**
      * @throws ValidationException|AppReadOnlyModeException|RandomException
      */
+    #[Route('', name: 'create', methods: [Request::METHOD_POST])]
     #[OARequest(PersonalAccessTokenCreateDto::class), OAResponseCreated(PersonalAccessTokenCreateResult::class), OAResponseValidation, OAResponseUnauthorized, OAResponseForbidden]
     public function create(Request $request, #[SerializeParam] PersonalAccessTokenCreateDto $dto): JsonResponse
     {
@@ -77,6 +82,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     /**
      * @throws AppReadOnlyModeException
      */
+    #[Route('/{id}/revoke', name: 'revoke', requirements: ['id' => Requirement::POSITIVE_INT], methods: [Request::METHOD_PATCH])]
     #[OAParameterPath('id'), OAResponse(AbstractPersonalAccessToken::class), OAResponseNotFound, OAResponseUnauthorized, OAResponseForbidden]
     public function revoke(Request $request, int $id): JsonResponse
     {

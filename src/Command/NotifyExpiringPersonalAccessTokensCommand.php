@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Command;
 
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\PersonalAccessTokenExpiryNotifierInterface;
+use AnzuSystems\AuthBundle\Contracts\PersonalAccessTokenExpiryNotifierInterface;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Exception\AppReadOnlyModeException;

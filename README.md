@@ -122,10 +122,17 @@ security:
 ```
 
 Management API routes (list/create/revoke) are provided by
-`AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController` — add routes pointing at its
-`getList`/`create`/`revoke` methods. Authorization uses the `auth_personalAccessToken_(create|read|revoke)`
-permissions (see `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires
-the role configured via `create_role` (default `ROLE_MCP`).
+`AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController` attribute routes — import them with a prefix:
+
+```php
+$routes
+    ->import('@AnzuSystemsAuthBundle/Controller/Api/PersonalAccessTokenController.php', type: 'attribute')
+    ->prefix('/api/adm/v1');
+```
+
+Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissions (see
+`AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
+configured via `create_role` (default `ROLE_MCP`).
 
 Console commands:
 

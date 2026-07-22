@@ -9,6 +9,7 @@ use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
 use AnzuSystems\AuthBundle\Command\NotifyExpiringPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
+use AnzuSystems\AuthBundle\Contracts\PersonalAccessTokenExpiryNotifierInterface;
 use AnzuSystems\AuthBundle\Contracts\RefreshTokenStorageInterface;
 use AnzuSystems\AuthBundle\Controller\Api\JsonCredentialsAuthController;
 use AnzuSystems\AuthBundle\Controller\Api\OAuth2AuthController;
@@ -17,7 +18,6 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenA
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\NoopPersonalAccessTokenExpiryNotifier;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\PersonalAccessTokenExpiryNotifierInterface;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\ValidateOAuth2AccessTokenProcess;

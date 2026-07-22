@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification;
+namespace AnzuSystems\AuthBundle\Contracts;
 
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 

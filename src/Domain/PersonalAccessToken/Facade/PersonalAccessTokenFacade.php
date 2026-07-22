@@ -1,0 +1,68 @@
+<?php
+
+declare(strict_types=1);
+
+namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade;
+
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
+use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\CommonBundle\Exception\ValidationException;
+use AnzuSystems\CommonBundle\Validator\Validator;
+use AnzuSystems\Contracts\Entity\AnzuUser;
+use DateTimeImmutable;
+use Random\RandomException;
+
+final readonly class PersonalAccessTokenFacade
+{
+    public const int TOKEN_BYTES_LENGTH = 32;
+
+    /**
+     * @param class-string<AbstractPersonalAccessToken> $entityClass
+     */
+    public function __construct(
+        private Validator $validator,
+        private PersonalAccessTokenManager $manager,
+        private PersonalAccessTokenAuthCache $authCache,
+        private string $entityClass,
+    ) {
+    }
+
+    /**
+     * @throws ValidationException
+     * @throws RandomException
+     */
+    public function create(
+        AnzuUser $user,
+        string $name,
+        ?DateTimeImmutable $expiresAt = null,
+    ): PersonalAccessTokenCreateResult {
+        $plainToken = AbstractPersonalAccessToken::TOKEN_PREFIX . bin2hex(random_bytes(self::TOKEN_BYTES_LENGTH));
+        $personalAccessToken = new $this->entityClass();
+        $personalAccessToken
+            ->setUser($user)
+            ->setName($name)
+            ->setTokenHash(AbstractPersonalAccessToken::hashToken($plainToken))
+        ;
+        if ($expiresAt instanceof DateTimeImmutable) {
+            $personalAccessToken->setExpiresAt($expiresAt);
+        }
+        $this->validator->validate($personalAccessToken);
+        $this->manager->create($personalAccessToken);
+
+        return new PersonalAccessTokenCreateResult($plainToken, $personalAccessToken);
+    }
+
+    public function revoke(AbstractPersonalAccessToken $personalAccessToken): AbstractPersonalAccessToken
+    {
+        if ($personalAccessToken->isRevoked()) {
+            return $personalAccessToken;
+        }
+
+        $revoked = $this->manager->revoke($personalAccessToken);
+        $this->authCache->invalidate($revoked->getTokenHash());
+
+        return $revoked;
+    }
+}

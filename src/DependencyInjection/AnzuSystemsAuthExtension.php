@@ -5,16 +5,27 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\DependencyInjection;
 
 use AnzuSystems\AuthBundle\Command\ChangeApiTokenCommand;
+use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
+use AnzuSystems\AuthBundle\Command\NotifyExpiringPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
 use AnzuSystems\AuthBundle\Contracts\RefreshTokenStorageInterface;
 use AnzuSystems\AuthBundle\Controller\Api\JsonCredentialsAuthController;
 use AnzuSystems\AuthBundle\Controller\Api\OAuth2AuthController;
+use AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\NoopPersonalAccessTokenExpiryNotifier;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\PersonalAccessTokenExpiryNotifierInterface;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\ValidateOAuth2AccessTokenProcess;
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\RefreshTokenStorage\RedisRefreshTokenStorage;
+use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
+use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Serializer\Handler\Handlers\JwtHandler;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
 use AnzuSystems\AuthBundle\Util\StatelessTokenUtil;
@@ -162,5 +173,82 @@ final class AnzuSystemsAuthExtension extends Extension
                 ->setAutoconfigured(true)
             ;
         }
+
+        $this->loadPersonalAccessToken($container, $processedConfig['personal_access_token']);
+    }
+
+    private function loadPersonalAccessToken(ContainerBuilder $container, array $config): void
+    {
+        if (false === $config['enabled']) {
+            return;
+        }
+        if (false === class_exists(EntityManagerInterface::class)) {
+            throw new InvalidArgumentException('The "personal_access_token" config section requires the "doctrine/orm" package.');
+        }
+        $entityClass = $config['entity_class'];
+        if (false === is_string($entityClass)) {
+            throw new InvalidArgumentException('Required entity_class at path "anzu_systems_auth.personal_access_token.entity_class".');
+        }
+
+        $container
+            ->register(PersonalAccessTokenRepository::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+            ->setArgument('$entityClass', $entityClass)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenManager::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenAuthCache::class)
+            ->setAutowired(true)
+            ->setArgument('$patAuthCache', new Reference($config['auth_cache_pool']))
+        ;
+
+        $container
+            ->register(PersonalAccessTokenFacade::class)
+            ->setAutowired(true)
+            ->setArgument('$entityClass', $entityClass)
+        ;
+
+        $container
+            ->register(NoopPersonalAccessTokenExpiryNotifier::class)
+        ;
+        $container->setAlias(PersonalAccessTokenExpiryNotifierInterface::class, NoopPersonalAccessTokenExpiryNotifier::class);
+
+        $container
+            ->register(PersonalAccessTokenAuthenticator::class)
+            ->setAutowired(true)
+            ->setArgument('$userEntityClass', $config['user_entity_class'])
+        ;
+
+        $container
+            ->register(PersonalAccessTokenVoter::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+        ;
+
+        $container
+            ->register(CreatePersonalAccessTokenCommand::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+            ->setArgument('$userEntityClass', $config['user_entity_class'])
+        ;
+
+        $container
+            ->register(NotifyExpiringPersonalAccessTokensCommand::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenController::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+        ;
     }
 }

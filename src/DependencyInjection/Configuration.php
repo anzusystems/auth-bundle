@@ -6,7 +6,9 @@ namespace AnzuSystems\AuthBundle\DependencyInjection;
 
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
+use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
+use AnzuSystems\Contracts\Entity\AnzuUser;
 use AnzuSystems\AuthBundle\Model\Enum\JwtAlgorithm;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
 use Exception;
@@ -29,10 +31,36 @@ final class Configuration implements ConfigurationInterface
                 ->append($this->addCookieSection())
                 ->append($this->addJwtSection())
                 ->append($this->addAuthorizationSection())
+                ->append($this->addPersonalAccessTokenSection())
             ->end()
         ;
 
         return $treeBuilder;
+    }
+
+    private function addPersonalAccessTokenSection(): NodeDefinition
+    {
+        return (new TreeBuilder('personal_access_token'))->getRootNode()
+            ->addDefaultsIfNotSet()
+            ->canBeEnabled()
+            ->children()
+                ->scalarNode('entity_class')
+                    ->defaultNull()
+                    ->validate()
+                        ->ifTrue(static fn (?string $entityClass): bool => is_string($entityClass) && false === is_a($entityClass, AbstractPersonalAccessToken::class, true))
+                        ->thenInvalid('Invalid personal_access_token entity_class "%s".')
+                    ->end()
+                ->end()
+                ->scalarNode('user_entity_class')
+                    ->defaultValue('App\\Entity\\User')
+                    ->validate()
+                        ->ifTrue(static fn (string $userEntityClass): bool => false === is_a($userEntityClass, AnzuUser::class, true))
+                        ->thenInvalid('Invalid personal_access_token user_entity_class "%s".')
+                    ->end()
+                ->end()
+                ->scalarNode('auth_cache_pool')->defaultValue('cache.app')->end()
+            ->end()
+        ;
     }
 
     private function addCookieSection(): NodeDefinition

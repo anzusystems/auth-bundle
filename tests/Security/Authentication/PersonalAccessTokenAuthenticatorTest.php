@@ -1,0 +1,137 @@
+<?php
+
+declare(strict_types=1);
+
+namespace AnzuSystems\AuthBundle\Tests\Security\Authentication;
+
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
+use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
+use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
+use AnzuSystems\Contracts\AnzuApp;
+use AnzuSystems\Contracts\Entity\AnzuUser;
+use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\Persistence\ManagerRegistry;
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
+
+final class PersonalAccessTokenAuthenticatorTest extends TestCase
+{
+    private const int USER_ID = 42;
+    private const string USER_ENTITY_CLASS = 'App\Entity\User';
+    private const string PLAIN_TOKEN = AbstractPersonalAccessToken::TOKEN_PREFIX . 'a1b2c3d4';
+
+    private PersonalAccessTokenAuthCache $authCache;
+    private EntityManagerInterface $entityManager;
+    private PersonalAccessTokenAuthenticator $authenticator;
+
+    public static function setUpBeforeClass(): void
+    {
+        AnzuApp::init(
+            appNamespace: 'anzusystems',
+            appSystem: 'authbundle',
+            appVersion: 'test',
+            appReadOnlyMode: false,
+            projectDir: sys_get_temp_dir(),
+            appEnv: 'test',
+        );
+    }
+
+    protected function setUp(): void
+    {
+        $repositoryEntityManager = $this->createMock(EntityManagerInterface::class);
+        $repositoryEntityManager->method('getClassMetadata')
+            ->willReturn(new ClassMetadata(PersonalAccessToken::class));
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')
+            ->willReturn($repositoryEntityManager);
+
+        $manager = new PersonalAccessTokenManager();
+        $manager->setEntityManager($this->createMock(EntityManagerInterface::class));
+        $manager->setCurrentAnzuUserProvider($this->createMock(CurrentAnzuUserProvider::class));
+
+        $this->authCache = new PersonalAccessTokenAuthCache(new ArrayAdapter());
+        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->authenticator = new PersonalAccessTokenAuthenticator(
+            new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
+            $manager,
+            $this->authCache,
+            $this->entityManager,
+            self::USER_ENTITY_CLASS,
+        );
+    }
+
+    public function testSupportsOnlyBearerTokensWithPatPrefix(): void
+    {
+        self::assertFalse($this->authenticator->supports(Request::create('/api/mcp')));
+        self::assertFalse($this->authenticator->supports($this->createRequest('Basic dXNlcjpwYXNz')));
+        self::assertFalse($this->authenticator->supports($this->createRequest('Bearer some-jwt-token')));
+        self::assertTrue($this->authenticator->supports($this->createRequest('Bearer ' . self::PLAIN_TOKEN)));
+        self::assertTrue($this->authenticator->supports($this->createRequest('bearer ' . self::PLAIN_TOKEN)));
+    }
+
+    public function testAuthenticateReturnsCachedUser(): void
+    {
+        $this->storeUserIdForPlainToken();
+        $user = $this->createConfiguredMock(AnzuUser::class, [
+            'getId' => self::USER_ID,
+            'isEnabled' => true,
+        ]);
+        $this->entityManager->method('find')
+            ->with(self::USER_ENTITY_CLASS, self::USER_ID)
+            ->willReturn($user);
+
+        $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+
+        self::assertSame($user, $passport->getUser());
+    }
+
+    public function testAuthenticateRejectsDisabledUser(): void
+    {
+        $this->storeUserIdForPlainToken();
+        $user = $this->createConfiguredMock(AnzuUser::class, [
+            'getId' => self::USER_ID,
+            'isEnabled' => false,
+        ]);
+        $this->entityManager->method('find')
+            ->willReturn($user);
+
+        $this->expectException(AuthenticationException::class);
+
+        $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+    }
+
+    public function testUnauthorizedResponseContainsWwwAuthenticateHeader(): void
+    {
+        $response = $this->authenticator->start(Request::create('/api/mcp'));
+
+        self::assertSame(Response::HTTP_UNAUTHORIZED, $response->getStatusCode());
+        self::assertSame('Bearer', $response->headers->get('WWW-Authenticate'));
+    }
+
+    private function storeUserIdForPlainToken(): void
+    {
+        $tokenHash = AbstractPersonalAccessToken::hashToken(self::PLAIN_TOKEN);
+        $this->authCache->storeUserId(
+            $tokenHash,
+            $this->authCache->getInvalidationVersion($tokenHash),
+            self::USER_ID,
+            AnzuApp::date('+1 hour'),
+        );
+    }
+
+    private function createRequest(string $authorizationHeader): Request
+    {
+        $request = Request::create('/api/mcp');
+        $request->headers->set('Authorization', $authorizationHeader);
+
+        return $request;
+    }
+}

@@ -77,9 +77,9 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $result = $this->facade->create($user, 'test-token');
 
         self::assertStringStartsWith(AbstractPersonalAccessToken::TOKEN_PREFIX, $result->token);
-        self::assertSame(
-            AbstractPersonalAccessToken::TOKEN_PREFIX . str_repeat('0', PersonalAccessTokenFacade::TOKEN_BYTES_LENGTH * 2),
-            preg_replace('~[0-9a-f]~', '0', $result->token),
+        self::assertMatchesRegularExpression(
+            sprintf('~^[0-9a-f]{%d}$~', PersonalAccessTokenFacade::TOKEN_BYTES_LENGTH * 2),
+            substr($result->token, strlen(AbstractPersonalAccessToken::TOKEN_PREFIX)),
         );
         self::assertSame(AbstractPersonalAccessToken::hashToken($result->token), $result->personalAccessToken->getTokenHash());
         self::assertSame('test-token', $result->personalAccessToken->getName());

@@ -23,6 +23,7 @@ use AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler;
 use AnzuSystems\AuthBundle\Security\AuthenticationSuccessHandler;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
+use AnzuSystems\AuthBundle\Tests\Data\Entity\User;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Yaml\Parser;
@@ -82,7 +83,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $config['personal_access_token'] = [
             'enabled' => true,
             'entity_class' => PersonalAccessToken::class,
-            'user_entity_class' => 'App\Entity\User',
+            'user_entity_class' => User::class,
             'auth_cache_pool' => 'cache.app',
         ];
         $loader->load([$config], $this->configuration);
@@ -105,7 +106,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         self::assertSame(PersonalAccessToken::class, $facadeArguments['$entityClass']);
 
         $authenticatorArguments = $this->configuration->getDefinition(PersonalAccessTokenAuthenticator::class)->getArguments();
-        self::assertSame('App\Entity\User', $authenticatorArguments['$userEntityClass']);
+        self::assertSame(User::class, $authenticatorArguments['$userEntityClass']);
     }
 
     public function testFullConfiguration(): void

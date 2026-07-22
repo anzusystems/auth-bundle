@@ -102,7 +102,10 @@ anzu_systems_auth:
 
 The `user` relation targets `AnzuSystems\Contracts\Entity\AnzuUser` — make sure doctrine
 `resolve_target_entities` maps it to the project user class. Add the doctrine mapping for the bundle's `Entity`
-namespace and generate the migration with `doctrine:migrations:diff`.
+namespace and generate the migration with `doctrine:migrations:diff`. `user_entity_class` must name the same class
+as the common-bundle `settings.user_entity_class` — the authenticator and `CurrentAnzuUserProvider` would otherwise
+load different user classes. The entity relies on constructor-less proxies, so use doctrine/orm 3 (lazy ghosts);
+the ORM 2 legacy proxy strategy conflicts with the final entity constructor.
 
 Wire the authenticator into a firewall protecting the API that accepts the tokens:
 
@@ -122,7 +125,7 @@ Management API routes (list/create/revoke) are provided by
 `AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController` — add routes pointing at its
 `getList`/`create`/`revoke` methods. Authorization uses the `auth_personalAccessToken_(create|read|revoke)`
 permissions (see `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires
-the `ROLE_MCP` role.
+the role configured via `create_role` (default `ROLE_MCP`).
 
 Console commands:
 

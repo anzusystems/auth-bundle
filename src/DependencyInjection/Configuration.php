@@ -10,6 +10,7 @@ use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\Model\Enum\JwtAlgorithm;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
+use AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use Exception;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
@@ -60,6 +61,10 @@ final class Configuration implements ConfigurationInterface
                 ->end()
                 ->scalarNode('auth_cache_pool')
                     ->defaultValue('cache.app')
+                    ->end()
+                ->scalarNode('create_role')
+                    ->defaultValue(PersonalAccessTokenPermission::ROLE_MCP)
+                    ->cannotBeEmpty()
                     ->end()
             ->end()
         ;

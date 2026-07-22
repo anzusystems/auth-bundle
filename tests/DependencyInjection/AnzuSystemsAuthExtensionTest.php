@@ -85,6 +85,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
             'entity_class' => PersonalAccessToken::class,
             'user_entity_class' => User::class,
             'auth_cache_pool' => 'cache.app',
+            'create_role' => 'ROLE_INTEGRATION',
         ];
         $loader->load([$config], $this->configuration);
 
@@ -107,6 +108,9 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
 
         $authenticatorArguments = $this->configuration->getDefinition(PersonalAccessTokenAuthenticator::class)->getArguments();
         self::assertSame(User::class, $authenticatorArguments['$userEntityClass']);
+
+        $voterArguments = $this->configuration->getDefinition(PersonalAccessTokenVoter::class)->getArguments();
+        self::assertSame('ROLE_INTEGRATION', $voterArguments['$createRole']);
     }
 
     public function testFullConfiguration(): void

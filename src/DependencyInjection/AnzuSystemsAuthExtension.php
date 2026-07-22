@@ -166,7 +166,7 @@ final class AnzuSystemsAuthExtension extends Extension
             }
         }
 
-        if (class_exists(EntityManagerInterface::class)) {
+        if (interface_exists(EntityManagerInterface::class)) {
             $container
                 ->register(ChangeApiTokenCommand::class)
                 ->setAutowired(true)
@@ -230,6 +230,7 @@ final class AnzuSystemsAuthExtension extends Extension
             ->register(PersonalAccessTokenVoter::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
+            ->setArgument('$createRole', $config['create_role'])
         ;
 
         $container

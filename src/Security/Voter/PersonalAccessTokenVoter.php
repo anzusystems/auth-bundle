@@ -15,10 +15,15 @@ use InvalidArgumentException;
  */
 final class PersonalAccessTokenVoter extends AbstractVoter
 {
+    public function __construct(
+        private readonly string $createRole = PersonalAccessTokenPermission::ROLE_MCP,
+    ) {
+    }
+
     protected function businessLogicVote(string $attribute, mixed $subject, AnzuUser $user): ?bool
     {
         if (PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE === $attribute
-            && false === $this->security->isGranted(PersonalAccessTokenPermission::ROLE_MCP)
+            && false === $this->security->isGranted($this->createRole)
         ) {
             return false;
         }

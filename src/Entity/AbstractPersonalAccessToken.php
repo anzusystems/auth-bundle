@@ -18,6 +18,7 @@ use AnzuSystems\SerializerBundle\Handler\Handlers\EntityIdHandler;
 use DateTimeImmutable;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use LogicException;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\MappedSuperclass]
@@ -61,7 +62,7 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[Serialize]
     protected ?DateTimeImmutable $lastUsedAt = null;
 
-    public function __construct()
+    final public function __construct()
     {
         $this->expiresAt = AnzuApp::date(self::DEFAULT_EXPIRES_AT_DATE);
     }
@@ -78,6 +79,10 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
 
     public function getUser(): AnzuUser
     {
+        if (null === $this->user) {
+            throw new LogicException('Personal access token user is not set.');
+        }
+
         return $this->user;
     }
 

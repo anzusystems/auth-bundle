@@ -182,7 +182,7 @@ final class AnzuSystemsAuthExtension extends Extension
         if (false === $config['enabled']) {
             return;
         }
-        if (false === class_exists(EntityManagerInterface::class)) {
+        if (false === interface_exists(EntityManagerInterface::class)) {
             throw new InvalidArgumentException('The "personal_access_token" config section requires the "doctrine/orm" package.');
         }
         $entityClass = $config['entity_class'];

@@ -68,3 +68,79 @@ $routes
     ->import('@AnzuSystemsAuthBundle/Controller/Api/JsonCredentialsAuthController.php', type: 'attribute')
     ->prefix('/api/auth/');
 ```
+
+## Personal access tokens
+
+Opt-in personal access token (PAT) authentication: an sha256-hashed bearer token bound to a user, with expiration,
+revocation, cached authentication, expiry notifications and management API. Disabled by default — a project that does
+not enable it needs no schema or configuration changes after a bundle upgrade.
+
+Enable it by subclassing the mapped superclass and pointing the config to it:
+
+```php
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: PersonalAccessTokenRepository::class)]
+#[ORM\Table(name: 'personal_access_token')]
+#[ORM\Index(name: 'IDX_revokedAt_expiresAt', fields: ['revokedAt', 'expiresAt'])]
+#[ORM\UniqueConstraint(name: 'UNIQ_tokenHash', fields: ['tokenHash'])]
+class PersonalAccessToken extends AbstractPersonalAccessToken
+{
+}
+```
+
+```yaml
+anzu_systems_auth:
+  personal_access_token:
+    enabled: true
+    entity_class: App\Domain\PersonalAccessToken\Entity\PersonalAccessToken
+    user_entity_class: App\Domain\User\Entity\User
+    auth_cache_pool: 'some_redis.cache'
+```
+
+The `user` relation targets `AnzuSystems\Contracts\Entity\AnzuUser` — make sure doctrine
+`resolve_target_entities` maps it to the project user class. Add the doctrine mapping for the bundle's `Entity`
+namespace and generate the migration with `doctrine:migrations:diff`. `user_entity_class` must name the same class
+as the common-bundle `settings.user_entity_class` — the authenticator and `CurrentAnzuUserProvider` would otherwise
+load different user classes. The entity relies on constructor-less proxies, so use doctrine/orm 3 (lazy ghosts);
+the ORM 2 legacy proxy strategy conflicts with the final entity constructor.
+
+Wire the authenticator into a firewall protecting the API that accepts the tokens:
+
+```yaml
+security:
+  firewalls:
+    mcp:
+      pattern: ^/api/mcp
+      stateless: true
+      provider: app_user_provider_id
+      entry_point: AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator
+      custom_authenticators:
+        - AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator
+```
+
+Management API routes (list/create/revoke) are provided by
+`AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController` attribute routes — import them with a prefix:
+
+```php
+$routes
+    ->import('@AnzuSystemsAuthBundle/Controller/Api/PersonalAccessTokenController.php', type: 'attribute')
+    ->prefix('/api/adm/v1');
+```
+
+Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissions (see
+`AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
+configured via `create_role` (default `ROLE_MCP`).
+
+Console commands:
+
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...]` — prints the plaintext token once.
+* `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
+  through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
+  final-notice windows of consecutive runs overlap, so the implementation must be idempotent per
+  (token, daysRemaining) pair — e.g. dispatch under an event name containing both.
+
+When migrating from an app-level PAT implementation, rename existing permission grants to the
+`auth_personalAccessToken_*` keys — grants stored under the old keys stop matching silently.

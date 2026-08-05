@@ -54,7 +54,8 @@ final class OAuth2HttpClient
                 method: Request::METHOD_GET,
                 url: $this->configuration->getSsoUserInfoUrl($id),
                 options: [
-                    'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken(),
+                    'auth_bearer' => $this->requestAccessTokenForClientService()
+                        ->getAccessToken(),
                 ]
             );
 
@@ -95,7 +96,8 @@ final class OAuth2HttpClient
                 method: Request::METHOD_GET,
                 url: $this->configuration->getSsoUserInfoByEmailUrl($email),
                 options: [
-                    'auth_bearer' => $this->requestAccessTokenForClientService()->getAccessToken(),
+                    'auth_bearer' => $this->requestAccessTokenForClientService()
+                        ->getAccessToken(),
                 ]
             );
 
@@ -157,9 +159,10 @@ final class OAuth2HttpClient
     private function getAccessTokenCacheItem(): CacheItemInterface
     {
         /** @noinspection PhpUnhandledExceptionInspection */
-        return $this->configuration->getAccessTokenCachePool()->getItem(
-            self::CLIENT_SERVICE_ACCESS_TOKEN_CACHE_KEY
-        );
+        return $this->configuration->getAccessTokenCachePool()
+            ->getItem(
+                self::CLIENT_SERVICE_ACCESS_TOKEN_CACHE_KEY
+            );
     }
 
     private function storeAccessTokenToCache(

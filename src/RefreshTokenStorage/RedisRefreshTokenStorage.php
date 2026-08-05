@@ -45,7 +45,8 @@ final class RedisRefreshTokenStorage implements RefreshTokenStorageInterface
     {
         $this->storageRedis->setex(
             $this->getUserDeviceKey($refreshTokenDto->getUserId(), $refreshTokenDto->getDevice()->getDeviceId()),
-            $refreshTokenDto->getExpiresAt()->getTimestamp() - time(),
+            $refreshTokenDto->getExpiresAt()
+                ->getTimestamp() - time(),
             $this->serializer->serialize($refreshTokenDto),
         );
     }

@@ -2,7 +2,11 @@
     "name": "anzusystems/auth-bundle",
     "description": "Anzu authorization services",
     "type": "symfony-bundle",
-    "keywords": ["symfony", "anzusystems", "authorization"],
+    "keywords": [
+        "symfony",
+        "anzusystems",
+        "authorization"
+    ],
     "license": "Apache-2.0",
     "authors": [
         {
@@ -14,12 +18,14 @@
         "php": ">=8.4",
         "ext-json": "*",
         "ext-redis": "*",
-        "anzusystems/common-bundle": "^9.0|^10.0|^11.0",
+        "anzusystems/common-bundle": "^9.4|^10.0|^11.0|^12.0",
         "doctrine/common": "^3.3",
         "lcobucci/clock": "^3.0",
-        "lcobucci/jwt": "^5.5"
+        "lcobucci/jwt": "^5.5",
+        "symfony/console": "^7.3|^8.0"
     },
     "require-dev": {
+        "doctrine/doctrine-bundle": "^2.11|^3.0",
         "doctrine/orm": "^2.13|^3.0",
         "nelmio/api-doc-bundle": "^5.9",
         "slevomat/coding-standard": "8.20.0",

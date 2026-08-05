@@ -40,7 +40,8 @@ final class JwtUtilTest extends TestCase
         $this->assertSame('123', $jwt->claims()->get(RegisteredClaims::SUBJECT));
         $this->assertSame(
             $expireAt->getTimestamp(),
-            $jwt->claims()->get(RegisteredClaims::EXPIRATION_TIME)->getTimestamp()
+            $jwt->claims()
+                ->get(RegisteredClaims::EXPIRATION_TIME)->getTimestamp()
         );
         $this->assertSame(['anz'], $jwt->claims()->get(RegisteredClaims::AUDIENCE));
     }
@@ -58,7 +59,8 @@ final class JwtUtilTest extends TestCase
         $this->assertSame('quux', $jwt->claims()->get('qux'));
         $this->assertSame(
             $expireAt->getTimestamp(),
-            $jwt->claims()->get(RegisteredClaims::EXPIRATION_TIME)->getTimestamp()
+            $jwt->claims()
+                ->get(RegisteredClaims::EXPIRATION_TIME)->getTimestamp()
         );
         $this->assertSame(['anz'], $jwt->claims()->get(RegisteredClaims::AUDIENCE));
     }

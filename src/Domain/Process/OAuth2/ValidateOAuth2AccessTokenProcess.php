@@ -36,7 +36,8 @@ final class ValidateOAuth2AccessTokenProcess
         }
 
         /** @psalm-var non-empty-string $subject */
-        $subject = (string) $token->claims()->get(RegisteredClaims::SUBJECT);
+        $subject = (string) $token->claims()
+            ->get(RegisteredClaims::SUBJECT);
 
         $constraints = [
             new PermittedFor($this->OAuth2Configuration->getSsoClientId()),
@@ -50,7 +51,7 @@ final class ValidateOAuth2AccessTokenProcess
 
         try {
             (new Validator())->assert($token, ...$constraints);
-        } catch (RequiredConstraintsViolated | NoConstraintsGiven $exception) {
+        } catch (RequiredConstraintsViolated|NoConstraintsGiven $exception) {
             throw InvalidJwtException::create($token->toString(), $exception);
         }
     }

@@ -4,14 +4,26 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Tests\DependencyInjection;
 
+use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
+use AnzuSystems\AuthBundle\Command\NotifyExpiringPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
+use AnzuSystems\AuthBundle\Contracts\PersonalAccessTokenExpiryNotifierInterface;
+use AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController;
 use AnzuSystems\AuthBundle\DependencyInjection\AnzuSystemsAuthExtension;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
 use AnzuSystems\AuthBundle\Event\Listener\LogoutListener;
+use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler;
 use AnzuSystems\AuthBundle\Security\AuthenticationSuccessHandler;
+use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
+use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
+use AnzuSystems\AuthBundle\Tests\Data\Entity\User;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Yaml\Parser;
@@ -56,6 +68,49 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertNotHasDefinition(LogoutListener::class);
         $this->assertNotHasDefinition(OAuth2Configuration::class);
         $this->assertNotHasDefinition(GrantAccessByOAuth2TokenProcess::class);
+        $this->assertNotHasDefinition(PersonalAccessTokenRepository::class);
+        $this->assertNotHasDefinition(PersonalAccessTokenFacade::class);
+        $this->assertNotHasDefinition(PersonalAccessTokenAuthenticator::class);
+        $this->assertNotHasDefinition(PersonalAccessTokenExpiryNotifierInterface::class);
+        $this->assertNotHasDefinition(PersonalAccessTokenController::class);
+    }
+
+    public function testPersonalAccessTokenConfiguration(): void
+    {
+        $this->configuration = new ContainerBuilder();
+        $loader = new AnzuSystemsAuthExtension();
+        $config = $this->getEmptyConfig();
+        $config['personal_access_token'] = [
+            'enabled' => true,
+            'entity_class' => PersonalAccessToken::class,
+            'user_entity_class' => User::class,
+            'auth_cache_pool' => 'cache.app',
+            'create_role' => 'ROLE_INTEGRATION',
+        ];
+        $loader->load([$config], $this->configuration);
+
+        $this->assertHasDefinition(PersonalAccessTokenRepository::class);
+        $this->assertHasDefinition(PersonalAccessTokenManager::class);
+        $this->assertHasDefinition(PersonalAccessTokenAuthCache::class);
+        $this->assertHasDefinition(PersonalAccessTokenFacade::class);
+        $this->assertHasDefinition(PersonalAccessTokenExpiryNotifierInterface::class);
+        $this->assertHasDefinition(PersonalAccessTokenAuthenticator::class);
+        $this->assertHasDefinition(PersonalAccessTokenVoter::class);
+        $this->assertHasDefinition(CreatePersonalAccessTokenCommand::class);
+        $this->assertHasDefinition(NotifyExpiringPersonalAccessTokensCommand::class);
+        $this->assertHasDefinition(PersonalAccessTokenController::class);
+
+        $repositoryArguments = $this->configuration->getDefinition(PersonalAccessTokenRepository::class)->getArguments();
+        self::assertSame(PersonalAccessToken::class, $repositoryArguments['$entityClass']);
+
+        $facadeArguments = $this->configuration->getDefinition(PersonalAccessTokenFacade::class)->getArguments();
+        self::assertSame(PersonalAccessToken::class, $facadeArguments['$entityClass']);
+
+        $authenticatorArguments = $this->configuration->getDefinition(PersonalAccessTokenAuthenticator::class)->getArguments();
+        self::assertSame(User::class, $authenticatorArguments['$userEntityClass']);
+
+        $voterArguments = $this->configuration->getDefinition(PersonalAccessTokenVoter::class)->getArguments();
+        self::assertSame('ROLE_INTEGRATION', $voterArguments['$createRole']);
     }
 
     public function testFullConfiguration(): void

@@ -41,7 +41,8 @@ final class AccessTokenDto
     {
         $jwt = $accessTokenResponseDto->getAccessToken();
         /** @var DateTimeInterface $expiresAt */
-        $expiresAt = $jwt->claims()->get('exp');
+        $expiresAt = $jwt->claims()
+            ->get('exp');
 
         return new self($jwt->toString(), $expiresAt, $jwt);
     }

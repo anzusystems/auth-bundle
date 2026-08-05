@@ -82,7 +82,7 @@ final class GrantAccessByOAuth2TokenProcess
 
         try {
             $authUser = $this->getAuthUser($accessTokenDto);
-        } catch (UnsuccessfulUserInfoRequestException | UnsuccessfulAccessTokenRequestException $exception) {
+        } catch (UnsuccessfulUserInfoRequestException|UnsuccessfulAccessTokenRequestException $exception) {
             $this->logException($request, $exception);
 
             return $this->createRedirectResponseForRequest(
@@ -172,7 +172,9 @@ final class GrantAccessByOAuth2TokenProcess
         if (self::AUTH_METHOD_SSO_ID === $this->authMethod) {
             // prefer to use the jwt
             if ($accessTokenDto->getJwt()) {
-                $ssoUserId = (string) $accessTokenDto->getJwt()->claims()->get(RegisteredClaims::SUBJECT);
+                $ssoUserId = (string) $accessTokenDto->getJwt()
+                    ->claims()
+                    ->get(RegisteredClaims::SUBJECT);
 
                 return $this->oAuth2AuthUserRepository->findOneBySsoUserId($ssoUserId);
             }

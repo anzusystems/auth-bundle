@@ -48,11 +48,15 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH)]
     protected string $tokenHash = '';
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
     #[Assert\GreaterThan(value: 'now', message: ValidationException::ERROR_FIELD_RANGE_MIN)]
     #[Assert\LessThanOrEqual(value: self::MAX_EXPIRES_AT_DATE, message: ValidationException::ERROR_FIELD_RANGE_MAX)]
-    protected DateTimeImmutable $expiresAt;
+    protected ?DateTimeImmutable $expiresAt;
+
+    #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['unsigned' => true])]
+    #[Assert\Positive(message: ValidationException::ERROR_FIELD_RANGE_MIN)]
+    protected ?int $rateLimit = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -117,14 +121,26 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
         return $this;
     }
 
-    public function getExpiresAt(): DateTimeImmutable
+    public function getExpiresAt(): ?DateTimeImmutable
     {
         return $this->expiresAt;
     }
 
-    public function setExpiresAt(DateTimeImmutable $expiresAt): static
+    public function setExpiresAt(?DateTimeImmutable $expiresAt): static
     {
         $this->expiresAt = $expiresAt;
+
+        return $this;
+    }
+
+    public function getRateLimit(): ?int
+    {
+        return $this->rateLimit;
+    }
+
+    public function setRateLimit(?int $rateLimit): static
+    {
+        $this->rateLimit = $rateLimit;
 
         return $this;
     }

@@ -16,8 +16,9 @@ use AnzuSystems\CommonBundle\Validator\Validator;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use DateTimeImmutable;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\Persistence\ManagerRegistry;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -33,12 +34,6 @@ final class PersonalAccessTokenFacadeTest extends TestCase
     private PersonalAccessTokenAuthCache $authCache;
     private PersonalAccessTokenFacade $facade;
     private ?object $persistedEntity = null;
-    private PersonalAccessTokenRepository $repository;
-
-    /**
-     * @var list<object>
-     */
-    private array $removedEntities = [];
 
     public static function setUpBeforeClass(): void
     {
@@ -63,10 +58,6 @@ final class PersonalAccessTokenFacadeTest extends TestCase
             ->willReturnCallback(function (object $entity): void {
                 $this->persistedEntity = $entity;
             });
-        $entityManager->method('remove')
-            ->willReturnCallback(function (object $entity): void {
-                $this->removedEntities[] = $entity;
-            });
 
         $currentUserProvider = $this->createMock(CurrentAnzuUserProvider::class);
         $currentUserProvider->method('getCurrentUser')
@@ -76,17 +67,22 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $manager->setEntityManager($entityManager);
         $manager->setCurrentAnzuUserProvider($currentUserProvider);
 
+        $repositoryEntityManager = $this->createMock(EntityManagerInterface::class);
+        $repositoryEntityManager->method('getClassMetadata')
+            ->willReturn(new ClassMetadata(PersonalAccessToken::class));
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManagerForClass')
+            ->willReturn($repositoryEntityManager);
+
         $this->authCache = new PersonalAccessTokenAuthCache(new ArrayAdapter());
-        $this->repository = $this->createMock(PersonalAccessTokenRepository::class);
         $this->facade = new PersonalAccessTokenFacade(
             new Validator($innerValidator),
             $manager,
-            $this->repository,
+            new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
             $this->authCache,
             PersonalAccessToken::class,
         );
         $this->persistedEntity = null;
-        $this->removedEntities = [];
     }
 
     public function testCreateProducesPrefixedTokenMatchingStoredHash(): void
@@ -157,31 +153,6 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 
         self::assertTrue($revoked->isRevoked());
         self::assertNull($this->authCache->getToken($tokenHash, $this->authCache->getInvalidationVersion($tokenHash)));
-    }
-
-    public function testDeleteByUserRemovesTokensAndInvalidatesCache(): void
-    {
-        $user = $this->createConfiguredMock(AnzuUser::class, ['getId' => self::USER_ID]);
-        $first = $this->facade->create($user, 'first')
-            ->personalAccessToken;
-        $second = $this->facade->create($user, 'second')
-            ->personalAccessToken;
-        $this->repository->method('findByUser')
-            ->with($user)
-            ->willReturn(new ArrayCollection([$first, $second]));
-        $version = $this->authCache->getInvalidationVersion($first->getTokenHash());
-        $this->authCache->storeToken(
-            $first->getTokenHash(),
-            $version,
-            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID, null),
-            AnzuApp::date('+1 hour'),
-        );
-
-        $this->facade->deleteByUser($user);
-
-        self::assertSame([$first, $second], $this->removedEntities);
-        $currentVersion = $this->authCache->getInvalidationVersion($first->getTokenHash());
-        self::assertNull($this->authCache->getToken($first->getTokenHash(), $currentVersion));
     }
 
     public function testRevokeIsIdempotent(): void

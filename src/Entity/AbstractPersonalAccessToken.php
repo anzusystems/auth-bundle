@@ -34,7 +34,7 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public const string MAX_EXPIRES_AT_DATE = '+1 year';
 
     #[ORM\ManyToOne(targetEntity: AnzuUser::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Serialize(handler: EntityIdHandler::class)]
     #[Assert\NotNull(message: ValidationException::ERROR_FIELD_EMPTY)]
     protected ?AnzuUser $user = null;

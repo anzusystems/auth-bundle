@@ -138,6 +138,9 @@ Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissio
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
 configured via `create_role` (default `ROLE_MCP`).
 
+Deleting a user: call `PersonalAccessTokenFacade::deleteByUser($user)` before removing the user entity — it deletes the
+user's tokens and invalidates their auth cache entries (the `user` join column also cascades on delete at the database level).
+
 Console commands:
 
 * `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--rate-limit=N]` —

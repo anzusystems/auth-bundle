@@ -7,6 +7,7 @@ namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\CommonBundle\Validator\Validator;
@@ -25,6 +26,7 @@ final readonly class PersonalAccessTokenFacade
     public function __construct(
         private Validator $validator,
         private PersonalAccessTokenManager $manager,
+        private PersonalAccessTokenRepository $repository,
         private PersonalAccessTokenAuthCache $authCache,
         private string $entityClass,
     ) {
@@ -63,6 +65,18 @@ final readonly class PersonalAccessTokenFacade
         $this->manager->create($personalAccessToken);
 
         return new PersonalAccessTokenCreateResult($plainToken, $personalAccessToken);
+    }
+
+    public function deleteByUser(AnzuUser $user): void
+    {
+        $personalAccessTokens = $this->repository->findByUser($user);
+        foreach ($personalAccessTokens as $personalAccessToken) {
+            $this->manager->delete($personalAccessToken, false);
+        }
+        $this->manager->flush();
+        foreach ($personalAccessTokens as $personalAccessToken) {
+            $this->authCache->invalidate($personalAccessToken->getTokenHash());
+        }
     }
 
     public function revoke(AbstractPersonalAccessToken $personalAccessToken): AbstractPersonalAccessToken

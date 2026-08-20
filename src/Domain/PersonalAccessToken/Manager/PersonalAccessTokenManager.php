@@ -28,6 +28,12 @@ final class PersonalAccessTokenManager extends AbstractManager
         return $personalAccessToken;
     }
 
+    public function delete(AbstractPersonalAccessToken $personalAccessToken, bool $flush = true): void
+    {
+        $this->entityManager->remove($personalAccessToken);
+        $this->flush($flush);
+    }
+
     public function updateLastUsedAt(AbstractPersonalAccessToken $personalAccessToken, bool $flush = true): AbstractPersonalAccessToken
     {
         $personalAccessToken->setLastUsedAt(AnzuApp::date());

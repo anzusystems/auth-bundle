@@ -1,9 +1,9 @@
 ## [Unreleased]
 
 ### Features
-* `AbstractPersonalAccessToken::expiresAt` is nullable — `NULL` means the token never expires (active in `findOneActiveByTokenHash()`, skipped by `anzu:personal-access-token:notify-expiring`); new `isNeverExpiring()`. New `rateLimit` column (`?int`, not serialized) — a per-token MCP rate limit overriding the configured default. Hosts must add a migration: `expires_at DATETIME DEFAULT NULL`, `rate_limit INT UNSIGNED DEFAULT NULL`, `user_id` foreign key `ON DELETE CASCADE`.
+* `AbstractPersonalAccessToken::expiresAt` is nullable — `NULL` means the token never expires (active in `findOneActiveByTokenHash()`, skipped by `anzu:personal-access-token:notify-expiring`). New `rateLimit` column (`?int`, not serialized) — a per-token MCP rate limit overriding the configured default. Hosts must add a migration: `expires_at DATETIME DEFAULT NULL`, `rate_limit INT UNSIGNED DEFAULT NULL`, `user_id` foreign key `ON DELETE CASCADE`.
 * `anzu:personal-access-token:create` gained `--never-expires` (mutually exclusive with `--expires-at`) and `--rate-limit=N`; `PersonalAccessTokenFacade::create()` gained `?int $rateLimit` and `bool $neverExpires`. The management API keeps creating expiring tokens without a rate limit.
-* `PersonalAccessTokenFacade::deleteByUser()` + `PersonalAccessTokenManager::delete()` remove all tokens of a user and invalidate their auth cache entries — call it before deleting the user; the `user` join column now declares `onDelete: CASCADE` as a database-level safety net (hosts must update the foreign key in their migration).
+* `PersonalAccessTokenFacade::deleteByUser()` + `PersonalAccessTokenManager::delete()` remove all tokens of a user and invalidate their auth cache entries — call it before deleting the user (the only reliable path — `created_by`/`modified_by` of the user's own tokens still reference the user); the `user` join column additionally declares `onDelete: CASCADE` as a best-effort database-level cleanup (hosts must update the foreign key in their migration).
 * `PersonalAccessTokenAuthenticator` sets `McpRateLimiter::TOKEN_ATTRIBUTE_KEY` (`pat_<id>`) and `McpRateLimiter::TOKEN_ATTRIBUTE_LIMIT` on the security token; `PersonalAccessTokenAuthCache` caches a `CachedPersonalAccessToken` (token id, user id, rate limit) under a new key prefix instead of the bare user id.
 
 ### Changes

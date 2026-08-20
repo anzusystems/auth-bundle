@@ -139,7 +139,9 @@ Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissio
 configured via `create_role` (default `ROLE_MCP`).
 
 Deleting a user: call `PersonalAccessTokenFacade::deleteByUser($user)` before removing the user entity — it deletes the
-user's tokens and invalidates their auth cache entries (the `user` join column also cascades on delete at the database level).
+user's tokens in one flush and invalidates their auth cache entries. The `user` join column also declares `onDelete: CASCADE`,
+but that is best-effort only: the `created_by`/`modified_by` columns of the user's own tokens still reference the user, so
+the explicit `deleteByUser()` call is the contract.
 
 Console commands:
 

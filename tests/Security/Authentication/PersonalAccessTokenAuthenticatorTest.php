@@ -51,19 +51,19 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $repositoryEntityManager = $this->createMock(EntityManagerInterface::class);
+        $repositoryEntityManager = $this->createStub(EntityManagerInterface::class);
         $repositoryEntityManager->method('getClassMetadata')
             ->willReturn(new ClassMetadata(PersonalAccessToken::class));
-        $registry = $this->createMock(ManagerRegistry::class);
+        $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')
             ->willReturn($repositoryEntityManager);
 
         $manager = new PersonalAccessTokenManager();
-        $manager->setEntityManager($this->createMock(EntityManagerInterface::class));
-        $manager->setCurrentAnzuUserProvider($this->createMock(CurrentAnzuUserProvider::class));
+        $manager->setEntityManager($this->createStub(EntityManagerInterface::class));
+        $manager->setCurrentAnzuUserProvider($this->createStub(CurrentAnzuUserProvider::class));
 
         $this->authCache = new PersonalAccessTokenAuthCache(new ArrayAdapter());
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager = $this->createStub(EntityManagerInterface::class);
         $this->authenticator = new PersonalAccessTokenAuthenticator(
             new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
             $manager,
@@ -85,12 +85,11 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
     public function testAuthenticateReturnsCachedUserAndTokenCarriesRateLimitAttributes(): void
     {
         $this->storeTokenForPlainToken();
-        $user = $this->createConfiguredMock(AnzuUser::class, [
+        $user = $this->createConfiguredStub(AnzuUser::class, [
             'getId' => self::USER_ID,
             'isEnabled' => true,
         ]);
         $this->entityManager->method('find')
-            ->with(self::USER_ENTITY_CLASS, self::USER_ID)
             ->willReturn($user);
 
         $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
@@ -104,7 +103,7 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
     public function testAuthenticateRejectsDisabledUser(): void
     {
         $this->storeTokenForPlainToken();
-        $user = $this->createConfiguredMock(AnzuUser::class, [
+        $user = $this->createConfiguredStub(AnzuUser::class, [
             'getId' => self::USER_ID,
             'isEnabled' => false,
         ]);

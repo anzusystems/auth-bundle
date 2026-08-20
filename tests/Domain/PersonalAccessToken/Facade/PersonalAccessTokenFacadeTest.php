@@ -49,28 +49,28 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 
     protected function setUp(): void
     {
-        $innerValidator = $this->createMock(ValidatorInterface::class);
+        $innerValidator = $this->createStub(ValidatorInterface::class);
         $innerValidator->method('validate')
             ->willReturn(new ConstraintViolationList());
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager = $this->createStub(EntityManagerInterface::class);
         $entityManager->method('persist')
             ->willReturnCallback(function (object $entity): void {
                 $this->persistedEntity = $entity;
             });
 
-        $currentUserProvider = $this->createMock(CurrentAnzuUserProvider::class);
+        $currentUserProvider = $this->createStub(CurrentAnzuUserProvider::class);
         $currentUserProvider->method('getCurrentUser')
-            ->willReturn($this->createConfiguredMock(AnzuUser::class, ['getId' => self::USER_ID]));
+            ->willReturn($this->createConfiguredStub(AnzuUser::class, ['getId' => self::USER_ID]));
 
         $manager = new PersonalAccessTokenManager();
         $manager->setEntityManager($entityManager);
         $manager->setCurrentAnzuUserProvider($currentUserProvider);
 
-        $repositoryEntityManager = $this->createMock(EntityManagerInterface::class);
+        $repositoryEntityManager = $this->createStub(EntityManagerInterface::class);
         $repositoryEntityManager->method('getClassMetadata')
             ->willReturn(new ClassMetadata(PersonalAccessToken::class));
-        $registry = $this->createMock(ManagerRegistry::class);
+        $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')
             ->willReturn($repositoryEntityManager);
 
@@ -87,7 +87,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 
     public function testCreateProducesPrefixedTokenMatchingStoredHash(): void
     {
-        $user = $this->createConfiguredMock(AnzuUser::class, ['getId' => self::USER_ID]);
+        $user = $this->createConfiguredStub(AnzuUser::class, ['getId' => self::USER_ID]);
 
         $result = $this->facade->create($user, 'test-token');
 
@@ -106,7 +106,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
     {
         $expiresAt = new DateTimeImmutable('+3 days');
 
-        $result = $this->facade->create($this->createConfiguredMock(AnzuUser::class, []), 'test-token', $expiresAt);
+        $result = $this->facade->create($this->createConfiguredStub(AnzuUser::class, []), 'test-token', $expiresAt);
 
         self::assertSame($expiresAt, $result->personalAccessToken->getExpiresAt());
         self::assertNull($result->personalAccessToken->getRateLimit());
@@ -115,7 +115,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
     public function testCreateNeverExpiringTokenWithRateLimit(): void
     {
         $result = $this->facade->create(
-            $this->createConfiguredMock(AnzuUser::class, []),
+            $this->createConfiguredStub(AnzuUser::class, []),
             'test-token',
             rateLimit: self::RATE_LIMIT,
             neverExpires: true,
@@ -130,7 +130,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         $this->facade->create(
-            $this->createConfiguredMock(AnzuUser::class, []),
+            $this->createConfiguredStub(AnzuUser::class, []),
             'test-token',
             new DateTimeImmutable('+3 days'),
             neverExpires: true,
@@ -139,7 +139,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 
     public function testRevokeSetsRevokedAtAndInvalidatesCache(): void
     {
-        $result = $this->facade->create($this->createConfiguredMock(AnzuUser::class, []), 'test-token');
+        $result = $this->facade->create($this->createConfiguredStub(AnzuUser::class, []), 'test-token');
         $tokenHash = $result->personalAccessToken->getTokenHash();
         $version = $this->authCache->getInvalidationVersion($tokenHash);
         $this->authCache->storeToken(
@@ -157,7 +157,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 
     public function testRevokeIsIdempotent(): void
     {
-        $result = $this->facade->create($this->createConfiguredMock(AnzuUser::class, []), 'test-token');
+        $result = $this->facade->create($this->createConfiguredStub(AnzuUser::class, []), 'test-token');
         $revoked = $this->facade->revoke($result->personalAccessToken);
         $revokedAt = $revoked->getRevokedAt();
 

@@ -175,11 +175,11 @@ final class CreatePersonalAccessTokenCommand extends Command
 
     private function resolveExpiresAtOption(InputInterface $input): ?DateTimeImmutable
     {
-        $expiresAtOption = $input->getOption(self::OPTION_EXPIRES_AT);
-        if (null === $expiresAtOption) {
+        $expiresAtOption = (string) $input->getOption(self::OPTION_EXPIRES_AT);
+        if (StringHelper::isEmpty($expiresAtOption)) {
             return null;
         }
 
-        return new DateTimeImmutable((string) $expiresAtOption);
+        return new DateTimeImmutable($expiresAtOption);
     }
 }

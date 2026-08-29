@@ -12,9 +12,9 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessT
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
+use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\CommonBundle\Validator\Validator;
 use AnzuSystems\Contracts\AnzuApp;
-use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;

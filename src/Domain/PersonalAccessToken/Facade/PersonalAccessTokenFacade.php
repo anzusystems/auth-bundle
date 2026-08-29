@@ -43,7 +43,8 @@ final readonly class PersonalAccessTokenFacade
         bool $neverExpires = false,
     ): PersonalAccessTokenCreateResult {
         if ($neverExpires && $expiresAt instanceof DateTimeImmutable) {
-            throw new ValidationException()->addFormattedError('expiresAt', ValidationException::ERROR_FIELD_INVALID);
+            throw new ValidationException()
+                ->addFormattedError('expiresAt', ValidationException::ERROR_FIELD_INVALID);
         }
         $plainToken = AbstractPersonalAccessToken::TOKEN_PREFIX . bin2hex(random_bytes(self::TOKEN_BYTES_LENGTH));
         $personalAccessToken = new $this->entityClass();

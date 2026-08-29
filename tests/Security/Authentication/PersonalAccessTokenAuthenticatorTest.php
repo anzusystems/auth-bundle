@@ -123,6 +123,18 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertSame('Bearer', $response->headers->get('WWW-Authenticate'));
     }
 
+    public function testMissingAndInvalidTokenAreDistinguishableInTheResponseBody(): void
+    {
+        $missing = (string) $this->authenticator->start(Request::create('/api/mcp'))->getContent();
+        $invalid = (string) $this->authenticator
+            ->onAuthenticationFailure(Request::create('/api/mcp'), new AuthenticationException())
+            ->getContent();
+
+        self::assertStringContainsString(AbstractPersonalAccessToken::TOKEN_PREFIX, $missing);
+        self::assertStringContainsString('invalid, revoked or expired', $invalid);
+        self::assertNotSame($missing, $invalid);
+    }
+
     private function storeTokenForPlainToken(): void
     {
         $tokenHash = AbstractPersonalAccessToken::hashToken(self::PLAIN_TOKEN);

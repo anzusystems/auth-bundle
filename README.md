@@ -148,7 +148,8 @@ Console commands:
 * `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--rate-limit=N]` —
   prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
   notifications, mutually exclusive with `--expires-at`); `--rate-limit` stores a per-token MCP rate limit overriding
-  the configured default (`null` = default). Both are command-only — the management API never sets them.
+  the configured default (`null` = default). Both are command-only — the management API never sets them, so a
+  never-expiring token can only be issued deliberately for a system user (e.g. a service integration).
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

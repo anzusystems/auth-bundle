@@ -13,7 +13,6 @@ use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\CommonBundle\Validator\Validator;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use DateTimeImmutable;
-use InvalidArgumentException;
 use Random\RandomException;
 
 final readonly class PersonalAccessTokenFacade
@@ -35,7 +34,6 @@ final readonly class PersonalAccessTokenFacade
     /**
      * @throws ValidationException
      * @throws RandomException
-     * @throws InvalidArgumentException
      */
     public function create(
         AnzuUser $user,
@@ -45,7 +43,7 @@ final readonly class PersonalAccessTokenFacade
         bool $neverExpires = false,
     ): PersonalAccessTokenCreateResult {
         if ($neverExpires && $expiresAt instanceof DateTimeImmutable) {
-            throw new InvalidArgumentException('A never expiring personal access token cannot have an expiration date.');
+            throw new ValidationException()->addFormattedError('expiresAt', ValidationException::ERROR_FIELD_INVALID);
         }
         $plainToken = AbstractPersonalAccessToken::TOKEN_PREFIX . bin2hex(random_bytes(self::TOKEN_BYTES_LENGTH));
         $personalAccessToken = new $this->entityClass();

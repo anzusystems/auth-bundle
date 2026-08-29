@@ -14,12 +14,12 @@ use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
 use AnzuSystems\CommonBundle\Validator\Validator;
 use AnzuSystems\Contracts\AnzuApp;
+use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
-use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Validator\ConstraintViolationList;
@@ -127,7 +127,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 
     public function testCreateRejectsExpiresAtCombinedWithNeverExpires(): void
     {
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(ValidationException::class);
 
         $this->facade->create(
             $this->createConfiguredStub(AnzuUser::class, []),

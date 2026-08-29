@@ -34,6 +34,11 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
     private const string WWW_AUTHENTICATE_SCHEME = 'Bearer';
     private const string PASSPORT_ATTRIBUTE_TOKEN = 'personal_access_token';
     private const string RATE_LIMIT_KEY_PREFIX = 'pat_';
+    private const string MESSAGE_MISSING_TOKEN = 'No personal access token was found in the request. Send it as '
+        . '"Authorization: Bearer ' . AbstractPersonalAccessToken::TOKEN_PREFIX . '...". The header was absent, was '
+        . 'stripped in transit, or carried a different kind of credential.';
+    private const string MESSAGE_INVALID_TOKEN = 'The personal access token is invalid, revoked or expired, or its '
+        . 'user is disabled. The header reached this application and was rejected.';
 
     /**
      * @param class-string<AnzuUser> $userEntityClass
@@ -104,12 +109,12 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {
-        return $this->createUnauthorizedResponse();
+        return $this->createUnauthorizedResponse(self::MESSAGE_INVALID_TOKEN);
     }
 
     public function start(Request $request, ?AuthenticationException $authException = null): Response
     {
-        return $this->createUnauthorizedResponse();
+        return $this->createUnauthorizedResponse(self::MESSAGE_MISSING_TOKEN);
     }
 
     private function authenticateAgainstDatabase(string $tokenHash, int $cacheVersion): CachedPersonalAccessToken
@@ -129,11 +134,11 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
         return $cachedToken;
     }
 
-    private function createUnauthorizedResponse(): JsonResponse
+    private function createUnauthorizedResponse(string $message): JsonResponse
     {
         return new JsonResponse(
             [
-                'message' => 'The resource owner or authorization server denied the request.',
+                'message' => $message,
             ],
             Response::HTTP_UNAUTHORIZED,
             [

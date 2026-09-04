@@ -15,7 +15,6 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
     private const string TOKEN_HASH = 'pat_auth_cache_test_token_hash';
     private const int PERSONAL_ACCESS_TOKEN_ID = 7;
     private const int USER_ID = 42;
-    private const int RATE_LIMIT = 600;
     private const string FUTURE_EXPIRY = '+1 hour';
 
     private PersonalAccessTokenAuthCache $cache;
@@ -52,7 +51,6 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
         self::assertNotNull($cached);
         self::assertSame(self::PERSONAL_ACCESS_TOKEN_ID, $cached->personalAccessTokenId);
         self::assertSame(self::USER_ID, $cached->userId);
-        self::assertSame(self::RATE_LIMIT, $cached->rateLimit);
     }
 
     public function testNeverExpiringTokenIsStored(): void
@@ -91,6 +89,6 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
 
     private function createToken(): CachedPersonalAccessToken
     {
-        return new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID, self::RATE_LIMIT);
+        return new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID);
     }
 }

@@ -130,10 +130,6 @@ $routes
     ->prefix('/api/adm/v1');
 ```
 
-The authenticator sets the `McpRateLimiter::TOKEN_ATTRIBUTE_KEY` (`pat_<id>`) and `McpRateLimiter::TOKEN_ATTRIBUTE_LIMIT`
-(the token's `rateLimit`) attributes on the security token, so the common-bundle MCP rate limiter (`anzusystems/common-bundle`
-`>=11.5`) buckets requests per personal access token and honours the per-token limit.
-
 Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissions (see
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
 configured via `create_role` (default `ROLE_MCP`).
@@ -145,10 +141,9 @@ the explicit `deleteByUser()` call is the contract.
 
 Console commands:
 
-* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--rate-limit=N]` —
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires]` —
   prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
-  notifications, mutually exclusive with `--expires-at`); `--rate-limit` stores a per-token MCP rate limit overriding
-  the configured default (`null` = default). Both are command-only — the management API never sets them, so a
+  notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
   never-expiring token can only be issued deliberately for a system user (e.g. a service integration).
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The

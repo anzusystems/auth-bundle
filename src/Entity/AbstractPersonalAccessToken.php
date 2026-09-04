@@ -54,10 +54,6 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[Assert\LessThanOrEqual(value: self::MAX_EXPIRES_AT_DATE, message: ValidationException::ERROR_FIELD_RANGE_MAX)]
     protected ?DateTimeImmutable $expiresAt;
 
-    #[ORM\Column(type: Types::INTEGER, nullable: true, options: ['unsigned' => true])]
-    #[Assert\Positive(message: ValidationException::ERROR_FIELD_RANGE_MIN)]
-    protected ?int $rateLimit = null;
-
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
     protected ?DateTimeImmutable $revokedAt = null;
@@ -129,18 +125,6 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public function setExpiresAt(?DateTimeImmutable $expiresAt): static
     {
         $this->expiresAt = $expiresAt;
-
-        return $this;
-    }
-
-    public function getRateLimit(): ?int
-    {
-        return $this->rateLimit;
-    }
-
-    public function setRateLimit(?int $rateLimit): static
-    {
-        $this->rateLimit = $rateLimit;
 
         return $this;
     }

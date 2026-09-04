@@ -9,7 +9,6 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessToke
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
-use AnzuSystems\CommonBundle\Mcp\McpRateLimiter;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use DateTimeImmutable;
@@ -32,8 +31,6 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
     private const string BEARER_PREFIX = 'Bearer ';
     private const string WWW_AUTHENTICATE_HEADER = 'WWW-Authenticate';
     private const string WWW_AUTHENTICATE_SCHEME = 'Bearer';
-    private const string PASSPORT_ATTRIBUTE_TOKEN = 'personal_access_token';
-    private const string RATE_LIMIT_KEY_PREFIX = 'pat_';
     private const string MESSAGE_MISSING_TOKEN = 'No personal access token was found in the request. Send it as '
         . '"Authorization: Bearer ' . AbstractPersonalAccessToken::TOKEN_PREFIX . '...". The header was absent, was '
         . 'stripped in transit, or carried a different kind of credential.';
@@ -79,27 +76,9 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
             throw new AuthenticationException(sprintf('User (%d) is not active or is disabled!', (int) $user->getId()));
         }
 
-        $passport = new SelfValidatingPassport(
+        return new SelfValidatingPassport(
             new UserBadge((string) $user->getId(), static fn (): AnzuUser => $user)
         );
-        $passport->setAttribute(self::PASSPORT_ATTRIBUTE_TOKEN, $cachedToken);
-
-        return $passport;
-    }
-
-    public function createToken(Passport $passport, string $firewallName): TokenInterface
-    {
-        $token = parent::createToken($passport, $firewallName);
-        $cachedToken = $passport->getAttribute(self::PASSPORT_ATTRIBUTE_TOKEN);
-        if ($cachedToken instanceof CachedPersonalAccessToken) {
-            $token->setAttribute(
-                McpRateLimiter::TOKEN_ATTRIBUTE_KEY,
-                self::RATE_LIMIT_KEY_PREFIX . $cachedToken->personalAccessTokenId,
-            );
-            $token->setAttribute(McpRateLimiter::TOKEN_ATTRIBUTE_LIMIT, $cachedToken->rateLimit);
-        }
-
-        return $token;
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response

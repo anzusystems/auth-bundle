@@ -32,10 +32,7 @@ final class CreatePersonalAccessTokenCommand extends Command
     private const string OPTION_NAME = 'name';
     private const string OPTION_EXPIRES_AT = 'expires-at';
     private const string OPTION_NEVER_EXPIRES = 'never-expires';
-    private const string OPTION_RATE_LIMIT = 'rate-limit';
     private const string EXPIRES_AT_NEVER = 'never';
-    private const string RATE_LIMIT_DEFAULT = 'default';
-    private const int RATE_LIMIT_MIN = 1;
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     /**
@@ -63,12 +60,6 @@ final class CreatePersonalAccessTokenCommand extends Command
                 'Create a token without expiration (mutually exclusive with --%s).',
                 self::OPTION_EXPIRES_AT,
             ))
-            ->addOption(
-                self::OPTION_RATE_LIMIT,
-                null,
-                InputOption::VALUE_REQUIRED,
-                'Requests per rate limit interval overriding the configured default, e.g. 600.',
-            )
         ;
     }
 
@@ -106,17 +97,6 @@ final class CreatePersonalAccessTokenCommand extends Command
             return self::FAILURE;
         }
 
-        $rateLimit = $this->resolveRateLimitOption($input);
-        if (false === $rateLimit) {
-            $output->writeln(sprintf(
-                '<error>Invalid --%s value "%s", provide a positive integer.</error>',
-                self::OPTION_RATE_LIMIT,
-                (string) $input->getOption(self::OPTION_RATE_LIMIT),
-            ));
-
-            return self::FAILURE;
-        }
-
         try {
             $expiresAt = $this->resolveExpiresAtOption($input);
         } catch (Exception) {
@@ -134,7 +114,6 @@ final class CreatePersonalAccessTokenCommand extends Command
                 user: $user,
                 name: $name,
                 expiresAt: $expiresAt,
-                rateLimit: $rateLimit,
                 neverExpires: $neverExpires,
             );
         } catch (ValidationException $exception) {
@@ -151,26 +130,8 @@ final class CreatePersonalAccessTokenCommand extends Command
             'Expires at: %s',
             $result->personalAccessToken->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
-        $output->writeln(sprintf(
-            'Rate limit: %s',
-            $result->personalAccessToken->getRateLimit() ?? self::RATE_LIMIT_DEFAULT,
-        ));
 
         return self::SUCCESS;
-    }
-
-    private function resolveRateLimitOption(InputInterface $input): int|false|null
-    {
-        $rateLimitOption = $input->getOption(self::OPTION_RATE_LIMIT);
-        if (null === $rateLimitOption) {
-            return null;
-        }
-
-        return filter_var($rateLimitOption, FILTER_VALIDATE_INT, [
-            'options' => [
-                'min_range' => self::RATE_LIMIT_MIN,
-            ],
-        ]);
     }
 
     private function resolveExpiresAtOption(InputInterface $input): ?DateTimeImmutable

@@ -11,7 +11,6 @@ final readonly class CachedPersonalAccessToken
     public function __construct(
         public int $personalAccessTokenId,
         public int $userId,
-        public ?int $rateLimit,
     ) {
     }
 
@@ -21,7 +20,6 @@ final readonly class CachedPersonalAccessToken
             (int) $personalAccessToken->getId(),
             (int) $personalAccessToken->getUser()
                 ->getId(),
-            $personalAccessToken->getRateLimit(),
         );
     }
 }

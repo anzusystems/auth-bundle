@@ -39,7 +39,6 @@ final readonly class PersonalAccessTokenFacade
         AnzuUser $user,
         string $name,
         ?DateTimeImmutable $expiresAt = null,
-        ?int $rateLimit = null,
         bool $neverExpires = false,
     ): PersonalAccessTokenCreateResult {
         if ($neverExpires && $expiresAt instanceof DateTimeImmutable) {
@@ -52,7 +51,6 @@ final readonly class PersonalAccessTokenFacade
             ->setUser($user)
             ->setName($name)
             ->setTokenHash(AbstractPersonalAccessToken::hashToken($plainToken))
-            ->setRateLimit($rateLimit)
         ;
         if ($expiresAt instanceof DateTimeImmutable) {
             $personalAccessToken->setExpiresAt($expiresAt);

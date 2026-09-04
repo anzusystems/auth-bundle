@@ -12,7 +12,6 @@ use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
-use AnzuSystems\CommonBundle\Mcp\McpRateLimiter;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,8 +27,6 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
 {
     private const int PERSONAL_ACCESS_TOKEN_ID = 7;
     private const int USER_ID = 42;
-    private const int RATE_LIMIT = 600;
-    private const string FIREWALL_NAME = 'mcp';
     private const string USER_ENTITY_CLASS = 'App\Entity\User';
     private const string PLAIN_TOKEN = AbstractPersonalAccessToken::TOKEN_PREFIX . 'a1b2c3d4';
 
@@ -82,7 +79,7 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertTrue($this->authenticator->supports($this->createRequest('bearer ' . self::PLAIN_TOKEN)));
     }
 
-    public function testAuthenticateReturnsCachedUserAndTokenCarriesRateLimitAttributes(): void
+    public function testAuthenticateReturnsCachedUser(): void
     {
         $this->storeTokenForPlainToken();
         $user = $this->createConfiguredStub(AnzuUser::class, [
@@ -93,11 +90,8 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
             ->willReturn($user);
 
         $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
-        $token = $this->authenticator->createToken($passport, self::FIREWALL_NAME);
 
         self::assertSame($user, $passport->getUser());
-        self::assertSame('pat_' . self::PERSONAL_ACCESS_TOKEN_ID, $token->getAttribute(McpRateLimiter::TOKEN_ATTRIBUTE_KEY));
-        self::assertSame(self::RATE_LIMIT, $token->getAttribute(McpRateLimiter::TOKEN_ATTRIBUTE_LIMIT));
     }
 
     public function testAuthenticateRejectsDisabledUser(): void
@@ -141,7 +135,7 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         $this->authCache->storeToken(
             $tokenHash,
             $this->authCache->getInvalidationVersion($tokenHash),
-            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID, self::RATE_LIMIT),
+            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID),
             AnzuApp::date('+1 hour'),
         );
     }

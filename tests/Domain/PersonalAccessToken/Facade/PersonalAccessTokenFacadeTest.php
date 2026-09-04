@@ -29,7 +29,6 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 {
     private const int USER_ID = 42;
     private const int PERSONAL_ACCESS_TOKEN_ID = 7;
-    private const int RATE_LIMIT = 600;
 
     private PersonalAccessTokenAuthCache $authCache;
     private PersonalAccessTokenFacade $facade;
@@ -109,20 +108,17 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $result = $this->facade->create($this->createConfiguredStub(AnzuUser::class, []), 'test-token', $expiresAt);
 
         self::assertSame($expiresAt, $result->personalAccessToken->getExpiresAt());
-        self::assertNull($result->personalAccessToken->getRateLimit());
     }
 
-    public function testCreateNeverExpiringTokenWithRateLimit(): void
+    public function testCreateNeverExpiringToken(): void
     {
         $result = $this->facade->create(
             $this->createConfiguredStub(AnzuUser::class, []),
             'test-token',
-            rateLimit: self::RATE_LIMIT,
             neverExpires: true,
         );
 
         self::assertNull($result->personalAccessToken->getExpiresAt());
-        self::assertSame(self::RATE_LIMIT, $result->personalAccessToken->getRateLimit());
     }
 
     public function testCreateRejectsExpiresAtCombinedWithNeverExpires(): void
@@ -145,7 +141,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $this->authCache->storeToken(
             $tokenHash,
             $version,
-            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID, null),
+            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID),
             AnzuApp::date('+1 hour'),
         );
 

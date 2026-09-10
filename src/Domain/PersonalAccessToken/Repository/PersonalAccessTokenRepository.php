@@ -38,7 +38,7 @@ final class PersonalAccessTokenRepository extends AbstractAnzuRepository
         return $this->createQueryBuilder('personalAccessToken')
             ->where('personalAccessToken.tokenHash = :tokenHash')
             ->andWhere('personalAccessToken.revokedAt IS NULL')
-            ->andWhere('personalAccessToken.expiresAt > :now')
+            ->andWhere('personalAccessToken.expiresAt IS NULL OR personalAccessToken.expiresAt > :now')
             ->setParameter('tokenHash', $tokenHash)
             ->setParameter('now', AnzuApp::date())
             ->getQuery()

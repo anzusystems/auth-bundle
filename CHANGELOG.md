@@ -1,3 +1,19 @@
+## [Unreleased]
+
+### Features
+* The two 401 states of `PersonalAccessTokenAuthenticator` are told apart in the response body: `start()` (no `Authorization` header, or one that does not carry a personal access token) answers "Missing personal access token…", `onAuthenticationFailure()` (header present, token rejected) answers "The personal access token is invalid, revoked or expired…". Status code and `WWW-Authenticate` are unchanged. Callers could previously not tell a header that never reached the application from a bad token.
+* `PersonalAccessTokenFacade::create()` rejects `neverExpires` combined with an `expiresAt` with a `ValidationException` on `expiresAt` instead of an `InvalidArgumentException`, so the console command reports it through its existing validation handling. Never-expiring tokens stay console-only — the management API cannot request one, so they can be issued only deliberately for a system user.
+* `AbstractPersonalAccessToken::expiresAt` is nullable — `NULL` means the token never expires (active in `findOneActiveByTokenHash()`, skipped by `anzu:personal-access-token:notify-expiring`). Hosts must add a migration: `expires_at DATETIME DEFAULT NULL`, `user_id` foreign key `ON DELETE CASCADE`.
+* `anzu:personal-access-token:create` gained `--never-expires` (mutually exclusive with `--expires-at`); `PersonalAccessTokenFacade::create()` gained `bool $neverExpires`. The management API keeps creating expiring tokens.
+* `PersonalAccessTokenFacade::deleteByUser()` + `PersonalAccessTokenManager::delete()` remove all tokens of a user and invalidate their auth cache entries — call it before deleting the user (the only reliable path — `created_by`/`modified_by` of the user's own tokens still reference the user); the `user` join column additionally declares `onDelete: CASCADE` as a best-effort database-level cleanup (hosts must update the foreign key in their migration).
+* `PersonalAccessTokenAuthCache` caches a `CachedPersonalAccessToken` (token id, user id) under a new key prefix instead of the bare user id.
+
+### Changes
+* BC change: `anzusystems/common-bundle` requirement raised to `^11.5`.
+* BC change: `PersonalAccessTokenFacade` constructor gained `PersonalAccessTokenRepository $repository` (autowired).
+* BC change: `AbstractPersonalAccessToken::getExpiresAt()` returns `?DateTimeImmutable`, `setExpiresAt()` accepts `null`; `PersonalAccessTokenAuthCache::getUserId()/storeUserId()` replaced by `getToken()/storeToken()`.
+* A cached token whose user entity no longer exists now fails authentication instead of falling back to the database lookup.
+
 ## [6.0.0](https://github.com/anzusystems/auth-bundle/compare/5.0.0...6.0.0) (2026-07-22)
 
 ### Features

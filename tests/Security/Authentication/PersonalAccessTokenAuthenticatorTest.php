@@ -6,6 +6,7 @@ namespace AnzuSystems\AuthBundle\Tests\Security\Authentication;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
@@ -24,6 +25,7 @@ use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
 final class PersonalAccessTokenAuthenticatorTest extends TestCase
 {
+    private const int PERSONAL_ACCESS_TOKEN_ID = 7;
     private const int USER_ID = 42;
     private const string USER_ENTITY_CLASS = 'App\Entity\User';
     private const string PLAIN_TOKEN = AbstractPersonalAccessToken::TOKEN_PREFIX . 'a1b2c3d4';
@@ -46,19 +48,19 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
 
     protected function setUp(): void
     {
-        $repositoryEntityManager = $this->createMock(EntityManagerInterface::class);
+        $repositoryEntityManager = $this->createStub(EntityManagerInterface::class);
         $repositoryEntityManager->method('getClassMetadata')
             ->willReturn(new ClassMetadata(PersonalAccessToken::class));
-        $registry = $this->createMock(ManagerRegistry::class);
+        $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')
             ->willReturn($repositoryEntityManager);
 
         $manager = new PersonalAccessTokenManager();
-        $manager->setEntityManager($this->createMock(EntityManagerInterface::class));
-        $manager->setCurrentAnzuUserProvider($this->createMock(CurrentAnzuUserProvider::class));
+        $manager->setEntityManager($this->createStub(EntityManagerInterface::class));
+        $manager->setCurrentAnzuUserProvider($this->createStub(CurrentAnzuUserProvider::class));
 
         $this->authCache = new PersonalAccessTokenAuthCache(new ArrayAdapter());
-        $this->entityManager = $this->createMock(EntityManagerInterface::class);
+        $this->entityManager = $this->createStub(EntityManagerInterface::class);
         $this->authenticator = new PersonalAccessTokenAuthenticator(
             new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
             $manager,
@@ -79,13 +81,12 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
 
     public function testAuthenticateReturnsCachedUser(): void
     {
-        $this->storeUserIdForPlainToken();
-        $user = $this->createConfiguredMock(AnzuUser::class, [
+        $this->storeTokenForPlainToken();
+        $user = $this->createConfiguredStub(AnzuUser::class, [
             'getId' => self::USER_ID,
             'isEnabled' => true,
         ]);
         $this->entityManager->method('find')
-            ->with(self::USER_ENTITY_CLASS, self::USER_ID)
             ->willReturn($user);
 
         $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
@@ -95,8 +96,8 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
 
     public function testAuthenticateRejectsDisabledUser(): void
     {
-        $this->storeUserIdForPlainToken();
-        $user = $this->createConfiguredMock(AnzuUser::class, [
+        $this->storeTokenForPlainToken();
+        $user = $this->createConfiguredStub(AnzuUser::class, [
             'getId' => self::USER_ID,
             'isEnabled' => false,
         ]);
@@ -116,13 +117,25 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertSame('Bearer', $response->headers->get('WWW-Authenticate'));
     }
 
-    private function storeUserIdForPlainToken(): void
+    public function testMissingAndInvalidTokenAreDistinguishableInTheResponseBody(): void
+    {
+        $missing = (string) $this->authenticator->start(Request::create('/api/mcp'))->getContent();
+        $invalid = (string) $this->authenticator
+            ->onAuthenticationFailure(Request::create('/api/mcp'), new AuthenticationException())
+            ->getContent();
+
+        self::assertStringContainsString(AbstractPersonalAccessToken::TOKEN_PREFIX, $missing);
+        self::assertStringContainsString('invalid, revoked or expired', $invalid);
+        self::assertNotSame($missing, $invalid);
+    }
+
+    private function storeTokenForPlainToken(): void
     {
         $tokenHash = AbstractPersonalAccessToken::hashToken(self::PLAIN_TOKEN);
-        $this->authCache->storeUserId(
+        $this->authCache->storeToken(
             $tokenHash,
             $this->authCache->getInvalidationVersion($tokenHash),
-            self::USER_ID,
+            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID),
             AnzuApp::date('+1 hour'),
         );
     }

@@ -34,7 +34,7 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public const string MAX_EXPIRES_AT_DATE = '+1 year';
 
     #[ORM\ManyToOne(targetEntity: AnzuUser::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Serialize(handler: EntityIdHandler::class)]
     #[Assert\NotNull(message: ValidationException::ERROR_FIELD_EMPTY)]
     protected ?AnzuUser $user = null;
@@ -48,11 +48,11 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH)]
     protected string $tokenHash = '';
 
-    #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
     #[Assert\GreaterThan(value: 'now', message: ValidationException::ERROR_FIELD_RANGE_MIN)]
     #[Assert\LessThanOrEqual(value: self::MAX_EXPIRES_AT_DATE, message: ValidationException::ERROR_FIELD_RANGE_MAX)]
-    protected DateTimeImmutable $expiresAt;
+    protected ?DateTimeImmutable $expiresAt;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -117,12 +117,12 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
         return $this;
     }
 
-    public function getExpiresAt(): DateTimeImmutable
+    public function getExpiresAt(): ?DateTimeImmutable
     {
         return $this->expiresAt;
     }
 
-    public function setExpiresAt(DateTimeImmutable $expiresAt): static
+    public function setExpiresAt(?DateTimeImmutable $expiresAt): static
     {
         $this->expiresAt = $expiresAt;
 

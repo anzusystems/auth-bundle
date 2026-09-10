@@ -31,6 +31,8 @@ final class CreatePersonalAccessTokenCommand extends Command
     private const string ARG_USER_ID = 'userId';
     private const string OPTION_NAME = 'name';
     private const string OPTION_EXPIRES_AT = 'expires-at';
+    private const string OPTION_NEVER_EXPIRES = 'never-expires';
+    private const string EXPIRES_AT_NEVER = 'never';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     /**
@@ -53,6 +55,10 @@ final class CreatePersonalAccessTokenCommand extends Command
                 'Expiration date time, e.g. "2026-09-21 12:00:00". Defaults to %s, at most %s.',
                 AbstractPersonalAccessToken::DEFAULT_EXPIRES_AT_DATE,
                 AbstractPersonalAccessToken::MAX_EXPIRES_AT_DATE,
+            ))
+            ->addOption(self::OPTION_NEVER_EXPIRES, null, InputOption::VALUE_NONE, sprintf(
+                'Create a token without expiration (mutually exclusive with --%s).',
+                self::OPTION_EXPIRES_AT,
             ))
         ;
     }
@@ -80,6 +86,17 @@ final class CreatePersonalAccessTokenCommand extends Command
             return self::FAILURE;
         }
 
+        $neverExpires = (bool) $input->getOption(self::OPTION_NEVER_EXPIRES);
+        if ($neverExpires && StringHelper::isNotEmpty((string) $input->getOption(self::OPTION_EXPIRES_AT))) {
+            $output->writeln(sprintf(
+                '<error>Options --%s and --%s are mutually exclusive.</error>',
+                self::OPTION_EXPIRES_AT,
+                self::OPTION_NEVER_EXPIRES,
+            ));
+
+            return self::FAILURE;
+        }
+
         try {
             $expiresAt = $this->resolveExpiresAtOption($input);
         } catch (Exception) {
@@ -97,6 +114,7 @@ final class CreatePersonalAccessTokenCommand extends Command
                 user: $user,
                 name: $name,
                 expiresAt: $expiresAt,
+                neverExpires: $neverExpires,
             );
         } catch (ValidationException $exception) {
             $output->writeln(sprintf(
@@ -110,8 +128,7 @@ final class CreatePersonalAccessTokenCommand extends Command
         $output->writeln(sprintf('Token (shown only once): <info>%s</info>', $result->token));
         $output->writeln(sprintf(
             'Expires at: %s',
-            $result->personalAccessToken->getExpiresAt()
-                ->format(self::DATETIME_FORMAT)
+            $result->personalAccessToken->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
 
         return self::SUCCESS;
@@ -119,11 +136,11 @@ final class CreatePersonalAccessTokenCommand extends Command
 
     private function resolveExpiresAtOption(InputInterface $input): ?DateTimeImmutable
     {
-        $expiresAtOption = $input->getOption(self::OPTION_EXPIRES_AT);
-        if (null === $expiresAtOption) {
+        $expiresAtOption = (string) $input->getOption(self::OPTION_EXPIRES_AT);
+        if (StringHelper::isEmpty($expiresAtOption)) {
             return null;
         }
 
-        return new DateTimeImmutable((string) $expiresAtOption);
+        return new DateTimeImmutable($expiresAtOption);
     }
 }

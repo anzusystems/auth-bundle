@@ -71,7 +71,7 @@ $routes
 
 ## Personal access tokens
 
-Opt-in personal access token (PAT) authentication: an sha256-hashed bearer token bound to a user, with expiration,
+Opt-in personal access token (PAT) authentication: an sha256-hashed bearer token bound to a user, with optional expiration,
 revocation, cached authentication, expiry notifications and management API. Disabled by default — a project that does
 not enable it needs no schema or configuration changes after a bundle upgrade.
 
@@ -134,9 +134,17 @@ Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissio
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
 configured via `create_role` (default `ROLE_MCP`).
 
+Deleting a user: call `PersonalAccessTokenFacade::deleteByUser($user)` before removing the user entity — it deletes the
+user's tokens in one flush and invalidates their auth cache entries. The `user` join column also declares `onDelete: CASCADE`,
+but that is best-effort only: the `created_by`/`modified_by` columns of the user's own tokens still reference the user, so
+the explicit `deleteByUser()` call is the contract.
+
 Console commands:
 
-* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...]` — prints the plaintext token once.
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires]` —
+  prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
+  notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
+  never-expiring token can only be issued deliberately for a system user (e.g. a service integration).
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

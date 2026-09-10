@@ -6,6 +6,7 @@ namespace AnzuSystems\AuthBundle\Security\Authentication;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\Contracts\AnzuApp;
@@ -30,6 +31,11 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
     private const string BEARER_PREFIX = 'Bearer ';
     private const string WWW_AUTHENTICATE_HEADER = 'WWW-Authenticate';
     private const string WWW_AUTHENTICATE_SCHEME = 'Bearer';
+    private const string MESSAGE_MISSING_TOKEN = 'No personal access token was found in the request. Send it as '
+        . '"Authorization: Bearer ' . AbstractPersonalAccessToken::TOKEN_PREFIX . '...". The header was absent, was '
+        . 'stripped in transit, or carried a different kind of credential.';
+    private const string MESSAGE_INVALID_TOKEN = 'The personal access token is invalid, revoked or expired, or its '
+        . 'user is disabled. The header reached this application and was rejected.';
 
     /**
      * @param class-string<AnzuUser> $userEntityClass
@@ -60,7 +66,12 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
         );
         $tokenHash = AbstractPersonalAccessToken::hashToken($plainToken);
         $cacheVersion = $this->authCache->getInvalidationVersion($tokenHash);
-        $user = $this->findCachedUser($tokenHash, $cacheVersion) ?? $this->authenticateAgainstDatabase($tokenHash, $cacheVersion);
+        $cachedToken = $this->authCache->getToken($tokenHash, $cacheVersion)
+            ?? $this->authenticateAgainstDatabase($tokenHash, $cacheVersion);
+        $user = $this->entityManager->find($this->userEntityClass, $cachedToken->userId);
+        if (false === ($user instanceof AnzuUser)) {
+            throw new AuthenticationException(sprintf('User (%d) not found!', $cachedToken->userId));
+        }
         if (false === $user->isEnabled()) {
             throw new AuthenticationException(sprintf('User (%d) is not active or is disabled!', (int) $user->getId()));
         }
@@ -77,29 +88,15 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {
-        return $this->createUnauthorizedResponse();
+        return $this->createUnauthorizedResponse(self::MESSAGE_INVALID_TOKEN);
     }
 
     public function start(Request $request, ?AuthenticationException $authException = null): Response
     {
-        return $this->createUnauthorizedResponse();
+        return $this->createUnauthorizedResponse(self::MESSAGE_MISSING_TOKEN);
     }
 
-    private function findCachedUser(string $tokenHash, int $cacheVersion): ?AnzuUser
-    {
-        $userId = $this->authCache->getUserId($tokenHash, $cacheVersion);
-        if (null === $userId) {
-            return null;
-        }
-        $user = $this->entityManager->find($this->userEntityClass, $userId);
-        if ($user instanceof AnzuUser) {
-            return $user;
-        }
-
-        return null;
-    }
-
-    private function authenticateAgainstDatabase(string $tokenHash, int $cacheVersion): AnzuUser
+    private function authenticateAgainstDatabase(string $tokenHash, int $cacheVersion): CachedPersonalAccessToken
     {
         try {
             $personalAccessToken = $this->personalAccessTokenRepo->findOneActiveByTokenHash($tokenHash);
@@ -109,18 +106,18 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
         if (null === $personalAccessToken) {
             throw new AuthenticationException('Invalid personal access token!');
         }
-        $user = $personalAccessToken->getUser();
         $this->updateLastUsedAtThrottled($personalAccessToken);
-        $this->authCache->storeUserId($tokenHash, $cacheVersion, (int) $user->getId(), $personalAccessToken->getExpiresAt());
+        $cachedToken = CachedPersonalAccessToken::fromEntity($personalAccessToken);
+        $this->authCache->storeToken($tokenHash, $cacheVersion, $cachedToken, $personalAccessToken->getExpiresAt());
 
-        return $user;
+        return $cachedToken;
     }
 
-    private function createUnauthorizedResponse(): JsonResponse
+    private function createUnauthorizedResponse(string $message): JsonResponse
     {
         return new JsonResponse(
             [
-                'message' => 'The resource owner or authorization server denied the request.',
+                'message' => $message,
             ],
             Response::HTTP_UNAUTHORIZED,
             [

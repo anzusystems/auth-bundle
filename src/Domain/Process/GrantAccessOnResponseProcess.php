@@ -12,6 +12,7 @@ use AnzuSystems\AuthBundle\Model\DeviceDto;
 use AnzuSystems\AuthBundle\Model\RefreshTokenDto;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
 use AnzuSystems\AuthBundle\Util\JwtUtil;
+use AnzuSystems\CommonBundle\Log\Helper\AuditLogResourceHelper;
 use DateTimeImmutable;
 use Exception;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -34,6 +35,7 @@ final readonly class GrantAccessOnResponseProcess
      */
     public function execute(string $userId, Request $request, ?Response $response = null): Response
     {
+        AuditLogResourceHelper::excludeFromAuditLogs($request);
         $jwtExpiresAt = new DateTimeImmutable(sprintf('+%d seconds', $this->jwtConfiguration->getLifetime()));
         $jwt = $this->jwtUtil->create($userId, $jwtExpiresAt);
         $deviceId = $this->httpUtil->grabDeviceIdFromRequest($request) ?: uuid_create();

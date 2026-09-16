@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Security;
 
+use AnzuSystems\CommonBundle\Log\Helper\AuditLogResourceHelper;
 use AnzuSystems\Contracts\AnzuApp;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,6 +17,7 @@ final class AuthenticationFailureHandler implements AuthenticationFailureHandler
 {
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
     {
+        AuditLogResourceHelper::excludeFromAuditLogs($request);
         if ($exception instanceof BadCredentialsException) {
             return new JsonResponse(
                 data: [

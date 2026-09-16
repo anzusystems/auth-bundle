@@ -1,4 +1,4 @@
-## [Unreleased]
+## [5.2.0](https://github.com/anzusystems/auth-bundle/compare/5.1.0...5.2.0) (2026-09-10)
 
 ### Features
 * The two 401 states of `PersonalAccessTokenAuthenticator` are told apart in the response body: `start()` (no `Authorization` header, or one that does not carry a personal access token) answers "Missing personal access token…", `onAuthenticationFailure()` (header present, token rejected) answers "The personal access token is invalid, revoked or expired…". Status code and `WWW-Authenticate` are unchanged. Callers could previously not tell a header that never reached the application from a bad token.
@@ -14,7 +14,7 @@
 * BC change: `AbstractPersonalAccessToken::getExpiresAt()` returns `?DateTimeImmutable`, `setExpiresAt()` accepts `null`; `PersonalAccessTokenAuthCache::getUserId()/storeUserId()` replaced by `getToken()/storeToken()`.
 * A cached token whose user entity no longer exists now fails authentication instead of falling back to the database lookup.
 
-## [6.0.0](https://github.com/anzusystems/auth-bundle/compare/5.0.0...6.0.0) (2026-07-22)
+## [5.1.0](https://github.com/anzusystems/auth-bundle/compare/5.0.0...5.1.0) (2026-08-05)
 
 ### Features
 * New opt-in `personal_access_token` config section (disabled by default — upgrading without enabling it requires no schema or configuration changes): sha256-hashed bearer tokens bound to a user with expiration (default 2 months, max 1 year), revocation, a versioned auth cache with the entry lifetime capped at the token expiry, throttled `lastUsedAt` tracking and a read-only-mode guard.

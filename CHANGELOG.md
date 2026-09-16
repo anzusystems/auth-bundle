@@ -1,3 +1,9 @@
+## [5.2.1](https://github.com/anzusystems/auth-bundle/compare/5.2.0...5.2.1) (2026-09-16)
+
+### Security
+* Successful `POST login` and `POST refresh-token` requests are no longer written to the audit log. The OAuth2 `authorize` callback is excluded as well, although a GET is not audited under the default `logged_methods`.
+* Requests rejected by `AuthenticationFailureHandler`, a failed `login` among them, are no longer written either. Failed `refresh-token` attempts are still logged.
+
 ## [5.2.0](https://github.com/anzusystems/auth-bundle/compare/5.1.0...5.2.0) (2026-09-10)
 
 ### Features

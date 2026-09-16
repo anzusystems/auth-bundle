@@ -1,3 +1,6 @@
+## [5.2.1](https://github.com/anzusystems/auth-bundle/compare/5.2.0...5.2.1) (2026-09-16)
+* Security: authentication requests — `refresh-token`, JSON credentials `login` and the OAuth2 `authorize` callback — are no longer written to the audit log. Failed refresh attempts are still logged.
+
 ## [5.2.0](https://github.com/anzusystems/auth-bundle/compare/5.1.0...5.2.0) (2026-09-10)
 
 ### Features

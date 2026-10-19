@@ -9,6 +9,7 @@ final class PersonalAccessTokenPermission
     public const string ROLE_MCP = 'ROLE_MCP';
 
     public const string PERSONAL_ACCESS_TOKEN_CREATE = 'auth_personalAccessToken_create';
+    public const string PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE = 'auth_personalAccessToken_createReadWrite';
     public const string PERSONAL_ACCESS_TOKEN_READ = 'auth_personalAccessToken_read';
     public const string PERSONAL_ACCESS_TOKEN_REVOKE = 'auth_personalAccessToken_revoke';
 }

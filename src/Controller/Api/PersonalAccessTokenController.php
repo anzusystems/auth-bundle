@@ -9,6 +9,7 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenC
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission;
 use AnzuSystems\CommonBundle\Controller\AbstractAnzuApiController;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
@@ -63,11 +64,15 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     {
         AnzuApp::throwOnReadOnlyMode();
         $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE);
+        if ($dto->getScope()->is(PersonalAccessTokenScope::ReadWrite)) {
+            $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE);
+        }
         AuditLogResourceHelper::excludeFromAuditLogs($request);
         $result = $this->personalAccessTokenFacade->create(
             user: $this->getUser(),
             name: $dto->getName(),
             expiresAt: $dto->getExpiresAt(),
+            scope: $dto->getScope(),
         );
         $this->logger->info('Personal access token created.', [
             'resource' => $result->personalAccessToken::getResourceName(),

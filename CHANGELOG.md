@@ -1,3 +1,16 @@
+## Unreleased
+
+### Features
+* Personal access tokens carry a scope: `AbstractPersonalAccessToken::$scope` (`PersonalAccessTokenScope`, `read` by default or `readWrite`), returned by the list API and fixed at creation. Hosts must add a migration: `scope VARCHAR(255) DEFAULT 'read' NOT NULL` — existing tokens become `read` tokens.
+* Creating a `readWrite` token requires the new `auth_personalAccessToken_createReadWrite` permission (`PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE`) on top of `auth_personalAccessToken_create`, gated by `create_role` like `create` — grant it to the users who may mint write tokens; super admins hold it implicitly, like every permission checked through `AbstractVoter`. The management API accepts `scope` on create, `PersonalAccessTokenFacade::create()` gained `PersonalAccessTokenScope $scope` (default `read`) and `anzu:personal-access-token:create` gained `--scope=read|readWrite` (default `read`).
+* `PersonalAccessTokenAuthenticator` copies the token scope onto the security token under the `PersonalAccessTokenAuthenticator::SCOPE_ATTRIBUTE` (`personal_access_token_scope`) attribute.
+* New `McpToolWriteVoter`, registered with the `personal_access_token` section, grants the common-bundle MCP write attribute `McpToolAccessChecker::WRITE_PERMISSION` (`mcp_tool_write`) only to a request authenticated with a `readWrite` personal access token. A `read` token or a JWT/session is denied, a super admin included — the voter does not extend `AbstractVoter`.
+* The auth cache key prefix changed from `pat_auth_token` to `pat_auth_token_v2`, so entries cached in the old shape are never read — every cached token re-authenticates against the database once after deploy.
+
+### Changes
+* BC change: `CachedPersonalAccessToken::__construct()` requires the token `scope` as its third argument; code constructing it by hand (tests) must pass it.
+* BC change: `anzusystems/common-bundle` requirement raised to `^11.9` (`McpToolAccessChecker::WRITE_PERMISSION`).
+
 ## [5.2.1](https://github.com/anzusystems/auth-bundle/compare/5.2.0...5.2.1) (2026-09-16)
 
 ### Security

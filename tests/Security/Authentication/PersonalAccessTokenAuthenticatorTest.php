@@ -9,6 +9,7 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessToke
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
@@ -29,6 +30,7 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
     private const int USER_ID = 42;
     private const string USER_ENTITY_CLASS = 'App\Entity\User';
     private const string PLAIN_TOKEN = AbstractPersonalAccessToken::TOKEN_PREFIX . 'a1b2c3d4';
+    private const string FIREWALL_NAME = 'mcp';
 
     private PersonalAccessTokenAuthCache $authCache;
     private EntityManagerInterface $entityManager;
@@ -79,9 +81,9 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertTrue($this->authenticator->supports($this->createRequest('bearer ' . self::PLAIN_TOKEN)));
     }
 
-    public function testAuthenticateReturnsCachedUser(): void
+    public function testAuthenticateReturnsCachedUserWithTokenScope(): void
     {
-        $this->storeTokenForPlainToken();
+        $this->storeTokenForPlainToken(PersonalAccessTokenScope::ReadWrite);
         $user = $this->createConfiguredStub(AnzuUser::class, [
             'getId' => self::USER_ID,
             'isEnabled' => true,
@@ -90,8 +92,13 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
             ->willReturn($user);
 
         $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+        $scope = $this->authenticator
+            ->createToken($passport, self::FIREWALL_NAME)
+            ->getAttribute(PersonalAccessTokenAuthenticator::SCOPE_ATTRIBUTE);
 
         self::assertSame($user, $passport->getUser());
+        self::assertInstanceOf(PersonalAccessTokenScope::class, $scope);
+        self::assertTrue($scope->is(PersonalAccessTokenScope::ReadWrite));
     }
 
     public function testAuthenticateRejectsDisabledUser(): void
@@ -129,14 +136,18 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertNotSame($missing, $invalid);
     }
 
-    private function storeTokenForPlainToken(): void
+    private function storeTokenForPlainToken(PersonalAccessTokenScope $scope = PersonalAccessTokenScope::Default): void
     {
         $tokenHash = AbstractPersonalAccessToken::hashToken(self::PLAIN_TOKEN);
         $this->authCache->storeToken(
-            $tokenHash,
-            $this->authCache->getInvalidationVersion($tokenHash),
-            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID),
-            AnzuApp::date('+1 hour'),
+            tokenHash: $tokenHash,
+            version: $this->authCache->getInvalidationVersion($tokenHash),
+            token: new CachedPersonalAccessToken(
+                personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
+                userId: self::USER_ID,
+                scope: $scope,
+            ),
+            expiresAt: AnzuApp::date('+1 hour'),
         );
     }
 

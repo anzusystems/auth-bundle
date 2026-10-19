@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model;
 
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\SerializerBundle\Attributes\Serialize;
 use DateTimeImmutable;
 
@@ -14,6 +15,9 @@ final class PersonalAccessTokenCreateDto
 
     #[Serialize]
     private ?DateTimeImmutable $expiresAt = null;
+
+    #[Serialize]
+    private PersonalAccessTokenScope $scope = PersonalAccessTokenScope::Default;
 
     public function getName(): string
     {
@@ -35,6 +39,18 @@ final class PersonalAccessTokenCreateDto
     public function setExpiresAt(?DateTimeImmutable $expiresAt): self
     {
         $this->expiresAt = $expiresAt;
+
+        return $this;
+    }
+
+    public function getScope(): PersonalAccessTokenScope
+    {
+        return $this->scope;
+    }
+
+    public function setScope(PersonalAccessTokenScope $scope): self
+    {
+        $this->scope = $scope;
 
         return $this;
     }

@@ -9,6 +9,7 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessToke
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\CommonBundle\Validator\Validator;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -40,6 +41,7 @@ final readonly class PersonalAccessTokenFacade
         string $name,
         ?DateTimeImmutable $expiresAt = null,
         bool $neverExpires = false,
+        PersonalAccessTokenScope $scope = PersonalAccessTokenScope::Default,
     ): PersonalAccessTokenCreateResult {
         if ($neverExpires && $expiresAt instanceof DateTimeImmutable) {
             throw new ValidationException()
@@ -51,6 +53,7 @@ final readonly class PersonalAccessTokenFacade
             ->setUser($user)
             ->setName($name)
             ->setTokenHash(AbstractPersonalAccessToken::hashToken($plainToken))
+            ->setScope($scope)
         ;
         if ($expiresAt instanceof DateTimeImmutable) {
             $personalAccessToken->setExpiresAt($expiresAt);

@@ -21,6 +21,7 @@ use AnzuSystems\AuthBundle\Event\Listener\LogoutListener;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler;
 use AnzuSystems\AuthBundle\Security\AuthenticationSuccessHandler;
+use AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\User;
@@ -96,6 +97,7 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertHasDefinition(PersonalAccessTokenExpiryNotifierInterface::class);
         $this->assertHasDefinition(PersonalAccessTokenAuthenticator::class);
         $this->assertHasDefinition(PersonalAccessTokenVoter::class);
+        $this->assertHasDefinition(McpToolWriteVoter::class);
         $this->assertHasDefinition(CreatePersonalAccessTokenCommand::class);
         $this->assertHasDefinition(NotifyExpiringPersonalAccessTokensCommand::class);
         $this->assertHasDefinition(PersonalAccessTokenController::class);

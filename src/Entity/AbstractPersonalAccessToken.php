@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Entity;
 
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -47,6 +48,10 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
 
     #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH)]
     protected string $tokenHash = '';
+
+    #[ORM\Column(enumType: PersonalAccessTokenScope::class, options: ['default' => PersonalAccessTokenScope::Default->value])]
+    #[Serialize]
+    protected PersonalAccessTokenScope $scope = PersonalAccessTokenScope::Default;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -113,6 +118,18 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public function setTokenHash(string $tokenHash): static
     {
         $this->tokenHash = $tokenHash;
+
+        return $this;
+    }
+
+    public function getScope(): PersonalAccessTokenScope
+    {
+        return $this->scope;
+    }
+
+    public function setScope(PersonalAccessTokenScope $scope): static
+    {
+        $this->scope = $scope;
 
         return $this;
     }

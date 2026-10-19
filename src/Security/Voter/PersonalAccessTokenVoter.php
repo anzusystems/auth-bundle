@@ -15,6 +15,11 @@ use InvalidArgumentException;
  */
 final class PersonalAccessTokenVoter extends AbstractVoter
 {
+    private const array CREATE_PERMISSIONS = [
+        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE,
+        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE,
+    ];
+
     public function __construct(
         private readonly string $createRole = PersonalAccessTokenPermission::ROLE_MCP,
     ) {
@@ -22,7 +27,7 @@ final class PersonalAccessTokenVoter extends AbstractVoter
 
     protected function businessLogicVote(string $attribute, mixed $subject, AnzuUser $user): ?bool
     {
-        if (PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE === $attribute
+        if (in_array(needle: $attribute, haystack: self::CREATE_PERMISSIONS, strict: true)
             && false === $this->security->isGranted($this->createRole)
         ) {
             return false;
@@ -52,6 +57,7 @@ final class PersonalAccessTokenVoter extends AbstractVoter
     {
         return [
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE,
+            PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE,
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_READ,
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_REVOKE,
         ];

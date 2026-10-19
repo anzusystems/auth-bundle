@@ -25,6 +25,7 @@ use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\RefreshTokenStorage\RedisRefreshTokenStorage;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
+use AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Serializer\Handler\Handlers\JwtHandler;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
@@ -231,6 +232,12 @@ final class AnzuSystemsAuthExtension extends Extension
             ->setAutowired(true)
             ->setAutoconfigured(true)
             ->setArgument('$createRole', $config['create_role'])
+        ;
+
+        $container
+            ->register(McpToolWriteVoter::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
         ;
 
         $container

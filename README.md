@@ -130,9 +130,16 @@ $routes
     ->prefix('/api/adm/v1');
 ```
 
-Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissions (see
+Authorization uses the `auth_personalAccessToken_(create|createReadWrite|read|revoke)` permissions (see
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
 configured via `create_role` (default `ROLE_MCP`).
+
+Every token has a scope (`AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope`), fixed at creation: `read`
+(default) or `readWrite`. Creating a `readWrite` token through the management API (`"scope": "readWrite"`) additionally
+requires `auth_personalAccessToken_createReadWrite`, which super admins hold implicitly. The authenticator copies the scope onto the security token
+(`PersonalAccessTokenAuthenticator::SCOPE_ATTRIBUTE`), and `AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter`
+grants the common-bundle MCP write attribute (`McpToolAccessChecker::WRITE_PERMISSION`) only to `readWrite` tokens —
+a `read` token or a JWT/session is denied, a super admin included.
 
 Deleting a user: call `PersonalAccessTokenFacade::deleteByUser($user)` before removing the user entity — it deletes the
 user's tokens in one flush and invalidates their auth cache entries. The `user` join column also declares `onDelete: CASCADE`,
@@ -141,10 +148,11 @@ the explicit `deleteByUser()` call is the contract.
 
 Console commands:
 
-* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires]` —
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--scope=read|readWrite]` —
   prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
   notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
-  never-expiring token can only be issued deliberately for a system user (e.g. a service integration).
+  never-expiring token can only be issued deliberately for a system user (e.g. a service integration). `--scope`
+  defaults to `read`.
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

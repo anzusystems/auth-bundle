@@ -10,6 +10,7 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessToke
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
@@ -98,7 +99,19 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         self::assertSame(AbstractPersonalAccessToken::hashToken($result->token), $result->personalAccessToken->getTokenHash());
         self::assertSame('test-token', $result->personalAccessToken->getName());
         self::assertSame($user, $result->personalAccessToken->getUser());
+        self::assertTrue($result->personalAccessToken->getScope()->is(PersonalAccessTokenScope::Read));
         self::assertSame($result->personalAccessToken, $this->persistedEntity);
+    }
+
+    public function testCreateSetsRequestedScope(): void
+    {
+        $result = $this->facade->create(
+            user: $this->createConfiguredStub(AnzuUser::class, []),
+            name: 'test-token',
+            scope: PersonalAccessTokenScope::ReadWrite,
+        );
+
+        self::assertTrue($result->personalAccessToken->getScope()->is(PersonalAccessTokenScope::ReadWrite));
     }
 
     public function testCreateRespectsExplicitExpiresAt(): void
@@ -139,10 +152,14 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $tokenHash = $result->personalAccessToken->getTokenHash();
         $version = $this->authCache->getInvalidationVersion($tokenHash);
         $this->authCache->storeToken(
-            $tokenHash,
-            $version,
-            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID),
-            AnzuApp::date('+1 hour'),
+            tokenHash: $tokenHash,
+            version: $version,
+            token: new CachedPersonalAccessToken(
+                personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
+                userId: self::USER_ID,
+                scope: PersonalAccessTokenScope::Read,
+            ),
+            expiresAt: AnzuApp::date('+1 hour'),
         );
 
         $revoked = $this->facade->revoke($result->personalAccessToken);

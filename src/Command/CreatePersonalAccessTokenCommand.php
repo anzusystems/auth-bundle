@@ -6,6 +6,7 @@ namespace AnzuSystems\AuthBundle\Command;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\CommonBundle\Helper\StringHelper;
 use AnzuSystems\Contracts\AnzuApp;
@@ -32,6 +33,8 @@ final class CreatePersonalAccessTokenCommand extends Command
     private const string OPTION_NAME = 'name';
     private const string OPTION_EXPIRES_AT = 'expires-at';
     private const string OPTION_NEVER_EXPIRES = 'never-expires';
+    private const string OPTION_SCOPE = 'scope';
+    private const string SCOPE_SEPARATOR = '", "';
     private const string EXPIRES_AT_NEVER = 'never';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
@@ -60,6 +63,12 @@ final class CreatePersonalAccessTokenCommand extends Command
                 'Create a token without expiration (mutually exclusive with --%s).',
                 self::OPTION_EXPIRES_AT,
             ))
+            ->addOption(
+                name: self::OPTION_SCOPE,
+                mode: InputOption::VALUE_REQUIRED,
+                description: sprintf('Token scope, one of "%s".', $this->formatScopes()),
+                default: PersonalAccessTokenScope::Default->toString(),
+            )
         ;
     }
 
@@ -109,12 +118,26 @@ final class CreatePersonalAccessTokenCommand extends Command
             return self::FAILURE;
         }
 
+        $scopeOption = (string) $input->getOption(self::OPTION_SCOPE);
+        $scope = PersonalAccessTokenScope::tryFrom($scopeOption);
+        if (null === $scope) {
+            $output->writeln(sprintf(
+                '<error>Invalid --%s value "%s", use one of "%s".</error>',
+                self::OPTION_SCOPE,
+                $scopeOption,
+                $this->formatScopes(),
+            ));
+
+            return self::FAILURE;
+        }
+
         try {
             $result = $this->personalAccessTokenFacade->create(
                 user: $user,
                 name: $name,
                 expiresAt: $expiresAt,
                 neverExpires: $neverExpires,
+                scope: $scope,
             );
         } catch (ValidationException $exception) {
             $output->writeln(sprintf(
@@ -130,6 +153,7 @@ final class CreatePersonalAccessTokenCommand extends Command
             'Expires at: %s',
             $result->personalAccessToken->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
+        $output->writeln(sprintf('Scope: %s', $result->personalAccessToken->getScope()->toString()));
 
         return self::SUCCESS;
     }
@@ -142,5 +166,10 @@ final class CreatePersonalAccessTokenCommand extends Command
         }
 
         return new DateTimeImmutable($expiresAtOption);
+    }
+
+    private function formatScopes(): string
+    {
+        return implode(self::SCOPE_SEPARATOR, PersonalAccessTokenScope::values());
     }
 }

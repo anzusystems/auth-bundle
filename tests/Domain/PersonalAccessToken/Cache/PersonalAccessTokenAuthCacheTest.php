@@ -6,6 +6,7 @@ namespace AnzuSystems\AuthBundle\Tests\Domain\PersonalAccessToken\Cache;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
+use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\Contracts\AnzuApp;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -51,6 +52,7 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
         self::assertNotNull($cached);
         self::assertSame(self::PERSONAL_ACCESS_TOKEN_ID, $cached->personalAccessTokenId);
         self::assertSame(self::USER_ID, $cached->userId);
+        self::assertTrue($cached->scope->is(PersonalAccessTokenScope::ReadWrite));
     }
 
     public function testNeverExpiringTokenIsStored(): void
@@ -89,6 +91,10 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
 
     private function createToken(): CachedPersonalAccessToken
     {
-        return new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID);
+        return new CachedPersonalAccessToken(
+            personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
+            userId: self::USER_ID,
+            scope: PersonalAccessTokenScope::ReadWrite,
+        );
     }
 }

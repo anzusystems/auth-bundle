@@ -121,7 +121,7 @@ security:
         - AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator
 ```
 
-Management API routes (list/create/revoke) are provided by
+Management API routes (list/create/revoke/write-tools) are provided by
 `AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController` attribute routes — import them with a prefix:
 
 ```php
@@ -130,16 +130,28 @@ $routes
     ->prefix('/api/adm/v1');
 ```
 
-Authorization uses the `auth_personalAccessToken_(create|createReadWrite|read|revoke)` permissions (see
+Authorization uses the `auth_personalAccessToken_(create|createWithWriteTools|read|revoke)` permissions (see
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
 configured via `create_role` (default `ROLE_MCP`).
 
-Every token has a scope (`AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope`), fixed at creation: `read`
-(default) or `readWrite`. Creating a `readWrite` token through the management API (`"scope": "readWrite"`) additionally
-requires `auth_personalAccessToken_createReadWrite`, which super admins hold implicitly. The authenticator copies the scope onto the security token
-(`PersonalAccessTokenAuthenticator::SCOPE_ATTRIBUTE`), and `AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter`
-grants the common-bundle MCP write attribute (`McpToolAccessChecker::WRITE_PERMISSION`) only to `readWrite` tokens —
-a `read` token or a JWT/session is denied, a super admin included.
+Every token carries the list of MCP write tools it may call (`AbstractPersonalAccessToken::getWriteTools()`), fixed at
+creation; an empty list is a read-only token. The list is stored in the nullable JSON column `write_tools` — add it with
+a migration, e.g. `ALTER TABLE personal_access_token ADD write_tools JSON DEFAULT NULL`; tokens created before keep
+`NULL` and stay read only. Every name must be a write tool of the common-bundle MCP configuration
+(`McpToolAccessChecker::getWriteToolNames()`: a `tool_permissions` entry whose tool lacks `readOnlyHint: true`) and may
+be listed once, otherwise creation fails validation on `writeTools` — in an application without MCP enabled every name
+fails. The check covers the configuration only and is what the console command relies on. Creating a token with at
+least one write tool through the management API (`"writeTools": ["create_quiz"]`) additionally requires
+`auth_personalAccessToken_createWithWriteTools`, which super admins hold implicitly, and answers 403 for any listed
+value that is not a write tool whose mapped MCP tool permission the creator holds — before the validation runs, so
+through the API an unknown or read tool name is a 403 and only a repeated name fails validation (422). The console
+command does not check the user's permissions; the tool permission is checked again on every call. `GET <prefix>/personal-access-token/write-tools`
+(same permission, so `create_role` applies too) returns the write tools whose mapped MCP tool permission the current user holds, as a JSON array of
+names (`[]` without MCP), so a creation form can offer them. The authenticator copies the list onto the security token
+(`PersonalAccessTokenAuthenticator::WRITE_TOOLS_ATTRIBUTE`), and `AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter`
+grants the common-bundle MCP write attribute (`McpToolAccessChecker::WRITE_PERMISSION`, asked with the tool name as the
+subject) only for the tools the token lists — a token not listing the tool or a JWT/session is denied, a super admin
+included.
 
 Deleting a user: call `PersonalAccessTokenFacade::deleteByUser($user)` before removing the user entity — it deletes the
 user's tokens in one flush and invalidates their auth cache entries. The `user` join column also declares `onDelete: CASCADE`,
@@ -148,11 +160,12 @@ the explicit `deleteByUser()` call is the contract.
 
 Console commands:
 
-* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--scope=read|readWrite]` —
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--write-tool=<name> ...]` —
   prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
   notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
-  never-expiring token can only be issued deliberately for a system user (e.g. a service integration). `--scope`
-  defaults to `read`.
+  never-expiring token can only be issued deliberately for a system user (e.g. a service integration). `--write-tool`
+  is repeatable, one write tool per option; without it the token is read only. The command prints the granted write
+  tools.
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Entity;
 
-use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteTools;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -49,9 +49,13 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH)]
     protected string $tokenHash = '';
 
-    #[ORM\Column(enumType: PersonalAccessTokenScope::class, options: ['default' => PersonalAccessTokenScope::Default->value])]
-    #[Serialize]
-    protected PersonalAccessTokenScope $scope = PersonalAccessTokenScope::Default;
+    /**
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
+    #[PersonalAccessTokenWriteTools]
+    protected ?array $writeTools = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -122,14 +126,21 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
         return $this;
     }
 
-    public function getScope(): PersonalAccessTokenScope
+    /**
+     * @return list<string>
+     */
+    #[Serialize]
+    public function getWriteTools(): array
     {
-        return $this->scope;
+        return $this->writeTools ?? [];
     }
 
-    public function setScope(PersonalAccessTokenScope $scope): static
+    /**
+     * @param array<string> $writeTools
+     */
+    public function setWriteTools(array $writeTools): static
     {
-        $this->scope = $scope;
+        $this->writeTools = array_values($writeTools);
 
         return $this;
     }

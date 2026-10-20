@@ -8,8 +8,8 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessToken
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateDto;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenWriteToolResolver;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
-use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission;
 use AnzuSystems\CommonBundle\Controller\AbstractAnzuApiController;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
@@ -37,9 +37,12 @@ use Symfony\Component\Routing\Requirement\Requirement;
 #[OA\Tag('PersonalAccessToken')]
 final class PersonalAccessTokenController extends AbstractAnzuApiController
 {
+    private const string WRITE_TOOLS_NOT_GRANTABLE_MESSAGE = 'A token can grant only the write tools whose tool permission you hold.';
+
     public function __construct(
         private readonly PersonalAccessTokenFacade $personalAccessTokenFacade,
         private readonly PersonalAccessTokenRepository $personalAccessTokenRepo,
+        private readonly PersonalAccessTokenWriteToolResolver $writeToolResolver,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -55,6 +58,17 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
         );
     }
 
+    #[Route('/write-tools', name: 'get_write_tools', methods: [Request::METHOD_GET])]
+    #[OA\Response(response: JsonResponse::HTTP_OK, description: 'Names of the MCP write tools the current user may grant to a token', content: new OA\JsonContent(type: 'array', items: new OA\Items(type: 'string'))), OAResponseUnauthorized, OAResponseForbidden]
+    public function getWriteTools(): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
+
+        return $this->okResponse(
+            $this->writeToolResolver->resolveGrantableWriteTools()
+        );
+    }
+
     /**
      * @throws ValidationException|AppReadOnlyModeException|RandomException
      */
@@ -64,15 +78,18 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     {
         AnzuApp::throwOnReadOnlyMode();
         $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE);
-        if ($dto->getScope()->is(PersonalAccessTokenScope::ReadWrite)) {
-            $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE);
+        if (count($dto->getWriteTools()) > 0) {
+            $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
+        }
+        if ($this->hasUngrantableWriteTool($dto->getWriteTools())) {
+            throw $this->createAccessDeniedException(self::WRITE_TOOLS_NOT_GRANTABLE_MESSAGE);
         }
         AuditLogResourceHelper::excludeFromAuditLogs($request);
         $result = $this->personalAccessTokenFacade->create(
             user: $this->getUser(),
             name: $dto->getName(),
             expiresAt: $dto->getExpiresAt(),
-            scope: $dto->getScope(),
+            writeTools: $dto->getWriteTools(),
         );
         $this->logger->info('Personal access token created.', [
             'resource' => $result->personalAccessToken::getResourceName(),
@@ -101,6 +118,19 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
 
         return $this->okResponse(
             $this->personalAccessTokenFacade->revoke($personalAccessToken)
+        );
+    }
+
+    /**
+     * @param array<mixed> $writeTools
+     */
+    private function hasUngrantableWriteTool(array $writeTools): bool
+    {
+        $grantableWriteTools = $this->writeToolResolver->resolveGrantableWriteTools();
+
+        return array_any(
+            $writeTools,
+            static fn (mixed $writeTool): bool => false === in_array(needle: $writeTool, haystack: $grantableWriteTools, strict: true),
         );
     }
 }

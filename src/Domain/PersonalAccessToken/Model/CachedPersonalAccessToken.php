@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model;
 
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
-use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 
 final readonly class CachedPersonalAccessToken
 {
+    /**
+     * @param list<string> $writeTools
+     */
     public function __construct(
         public int $personalAccessTokenId,
         public int $userId,
-        public PersonalAccessTokenScope $scope,
+        public array $writeTools,
     ) {
     }
 
@@ -22,7 +24,7 @@ final readonly class CachedPersonalAccessToken
             personalAccessTokenId: (int) $personalAccessToken->getId(),
             userId: (int) $personalAccessToken->getUser()
                 ->getId(),
-            scope: $personalAccessToken->getScope(),
+            writeTools: $personalAccessToken->getWriteTools(),
         );
     }
 }

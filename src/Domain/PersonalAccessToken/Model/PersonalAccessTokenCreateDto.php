@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model;
 
-use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\SerializerBundle\Attributes\Serialize;
 use DateTimeImmutable;
 
@@ -16,8 +15,11 @@ final class PersonalAccessTokenCreateDto
     #[Serialize]
     private ?DateTimeImmutable $expiresAt = null;
 
+    /**
+     * @var list<string>
+     */
     #[Serialize]
-    private PersonalAccessTokenScope $scope = PersonalAccessTokenScope::Default;
+    private array $writeTools = [];
 
     public function getName(): string
     {
@@ -43,14 +45,20 @@ final class PersonalAccessTokenCreateDto
         return $this;
     }
 
-    public function getScope(): PersonalAccessTokenScope
+    /**
+     * @return list<string>
+     */
+    public function getWriteTools(): array
     {
-        return $this->scope;
+        return $this->writeTools;
     }
 
-    public function setScope(PersonalAccessTokenScope $scope): self
+    /**
+     * @param list<string> $writeTools
+     */
+    public function setWriteTools(array $writeTools): self
     {
-        $this->scope = $scope;
+        $this->writeTools = $writeTools;
 
         return $this;
     }

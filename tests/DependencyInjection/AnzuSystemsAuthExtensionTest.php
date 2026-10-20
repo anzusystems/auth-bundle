@@ -14,6 +14,8 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenA
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenWriteToolResolver;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsValidator;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
@@ -94,6 +96,8 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertHasDefinition(PersonalAccessTokenManager::class);
         $this->assertHasDefinition(PersonalAccessTokenAuthCache::class);
         $this->assertHasDefinition(PersonalAccessTokenFacade::class);
+        $this->assertHasDefinition(PersonalAccessTokenWriteToolResolver::class);
+        $this->assertHasDefinition(PersonalAccessTokenWriteToolsValidator::class);
         $this->assertHasDefinition(PersonalAccessTokenExpiryNotifierInterface::class);
         $this->assertHasDefinition(PersonalAccessTokenAuthenticator::class);
         $this->assertHasDefinition(PersonalAccessTokenVoter::class);

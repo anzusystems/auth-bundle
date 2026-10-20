@@ -62,7 +62,7 @@ final class PersonalAccessTokenVoterTest extends TestCase
         $result = $voter->vote(
             token: $this->createToken($user),
             subject: null,
-            attributes: [PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE],
+            attributes: [PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS],
         );
 
         self::assertSame(VoterInterface::ACCESS_DENIED, $result);
@@ -130,7 +130,7 @@ final class PersonalAccessTokenVoterTest extends TestCase
     {
         return [
             'create' => [PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE],
-            'create read-write' => [PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE],
+            'create with write tools' => [PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS],
         ];
     }
 

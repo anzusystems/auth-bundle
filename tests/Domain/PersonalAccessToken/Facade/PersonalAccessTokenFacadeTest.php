@@ -10,7 +10,6 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessToke
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
-use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
@@ -30,6 +29,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
 {
     private const int USER_ID = 42;
     private const int PERSONAL_ACCESS_TOKEN_ID = 7;
+    private const string WRITE_TOOL = 'create_quiz';
 
     private PersonalAccessTokenAuthCache $authCache;
     private PersonalAccessTokenFacade $facade;
@@ -99,19 +99,19 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         self::assertSame(AbstractPersonalAccessToken::hashToken($result->token), $result->personalAccessToken->getTokenHash());
         self::assertSame('test-token', $result->personalAccessToken->getName());
         self::assertSame($user, $result->personalAccessToken->getUser());
-        self::assertTrue($result->personalAccessToken->getScope()->is(PersonalAccessTokenScope::Read));
+        self::assertSame([], $result->personalAccessToken->getWriteTools());
         self::assertSame($result->personalAccessToken, $this->persistedEntity);
     }
 
-    public function testCreateSetsRequestedScope(): void
+    public function testCreateStoresRequestedWriteTools(): void
     {
         $result = $this->facade->create(
             user: $this->createConfiguredStub(AnzuUser::class, []),
             name: 'test-token',
-            scope: PersonalAccessTokenScope::ReadWrite,
+            writeTools: [self::WRITE_TOOL],
         );
 
-        self::assertTrue($result->personalAccessToken->getScope()->is(PersonalAccessTokenScope::ReadWrite));
+        self::assertSame([self::WRITE_TOOL], $result->personalAccessToken->getWriteTools());
     }
 
     public function testCreateRespectsExplicitExpiresAt(): void
@@ -157,7 +157,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
             token: new CachedPersonalAccessToken(
                 personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
                 userId: self::USER_ID,
-                scope: PersonalAccessTokenScope::Read,
+                writeTools: [],
             ),
             expiresAt: AnzuApp::date('+1 hour'),
         );

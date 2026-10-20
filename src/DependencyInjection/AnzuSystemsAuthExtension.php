@@ -19,6 +19,8 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessToken
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\NoopPersonalAccessTokenExpiryNotifier;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenWriteToolResolver;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsValidator;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\ValidateOAuth2AccessTokenProcess;
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
@@ -214,6 +216,17 @@ final class AnzuSystemsAuthExtension extends Extension
             ->register(PersonalAccessTokenFacade::class)
             ->setAutowired(true)
             ->setArgument('$entityClass', $entityClass)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenWriteToolResolver::class)
+            ->setAutowired(true)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenWriteToolsValidator::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
         ;
 
         $container

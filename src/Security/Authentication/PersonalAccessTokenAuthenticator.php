@@ -27,7 +27,7 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
 
 final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
-    public const string SCOPE_ATTRIBUTE = 'personal_access_token_scope';
+    public const string WRITE_TOOLS_ATTRIBUTE = 'personal_access_token_write_tools';
 
     private const string AUTHORIZATION_HEADER = 'Authorization';
     private const string BEARER_PREFIX = 'Bearer ';
@@ -81,7 +81,7 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
         $passport = new SelfValidatingPassport(
             new UserBadge((string) $user->getId(), static fn (): AnzuUser => $user)
         );
-        $passport->setAttribute(self::SCOPE_ATTRIBUTE, $cachedToken->scope);
+        $passport->setAttribute(self::WRITE_TOOLS_ATTRIBUTE, $cachedToken->writeTools);
 
         return $passport;
     }
@@ -89,7 +89,7 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
     public function createToken(Passport $passport, string $firewallName): TokenInterface
     {
         $token = parent::createToken($passport, $firewallName);
-        $token->setAttribute(self::SCOPE_ATTRIBUTE, $passport->getAttribute(self::SCOPE_ATTRIBUTE));
+        $token->setAttribute(self::WRITE_TOOLS_ATTRIBUTE, $passport->getAttribute(self::WRITE_TOOLS_ATTRIBUTE));
 
         return $token;
     }

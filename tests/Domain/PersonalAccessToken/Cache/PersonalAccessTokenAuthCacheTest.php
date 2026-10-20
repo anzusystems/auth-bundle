@@ -6,7 +6,6 @@ namespace AnzuSystems\AuthBundle\Tests\Domain\PersonalAccessToken\Cache;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
-use AnzuSystems\AuthBundle\Model\Enum\PersonalAccessTokenScope;
 use AnzuSystems\Contracts\AnzuApp;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
@@ -17,6 +16,7 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
     private const int PERSONAL_ACCESS_TOKEN_ID = 7;
     private const int USER_ID = 42;
     private const string FUTURE_EXPIRY = '+1 hour';
+    private const string WRITE_TOOL = 'create_quiz';
 
     private PersonalAccessTokenAuthCache $cache;
 
@@ -52,7 +52,7 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
         self::assertNotNull($cached);
         self::assertSame(self::PERSONAL_ACCESS_TOKEN_ID, $cached->personalAccessTokenId);
         self::assertSame(self::USER_ID, $cached->userId);
-        self::assertTrue($cached->scope->is(PersonalAccessTokenScope::ReadWrite));
+        self::assertSame([self::WRITE_TOOL], $cached->writeTools);
     }
 
     public function testNeverExpiringTokenIsStored(): void
@@ -94,7 +94,7 @@ final class PersonalAccessTokenAuthCacheTest extends TestCase
         return new CachedPersonalAccessToken(
             personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
             userId: self::USER_ID,
-            scope: PersonalAccessTokenScope::ReadWrite,
+            writeTools: [self::WRITE_TOOL],
         );
     }
 }

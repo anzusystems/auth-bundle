@@ -17,7 +17,7 @@ final class PersonalAccessTokenVoter extends AbstractVoter
 {
     private const array CREATE_PERMISSIONS = [
         PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE,
-        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE,
+        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS,
     ];
 
     public function __construct(
@@ -57,7 +57,7 @@ final class PersonalAccessTokenVoter extends AbstractVoter
     {
         return [
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE,
-            PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_READ_WRITE,
+            PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS,
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_READ,
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_REVOKE,
         ];

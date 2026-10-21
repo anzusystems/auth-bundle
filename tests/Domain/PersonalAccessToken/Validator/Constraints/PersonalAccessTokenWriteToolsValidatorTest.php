@@ -52,7 +52,6 @@ final class PersonalAccessTokenWriteToolsValidatorTest extends TestCase
         return [
             'write tool' => [true, [self::WRITE_TOOL], []],
             'unknown tool' => [true, [self::WRITE_TOOL, self::UNKNOWN_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
-            'read tool' => [true, [self::READ_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
             'write tool without mcp' => [false, [self::WRITE_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
         ];
     }

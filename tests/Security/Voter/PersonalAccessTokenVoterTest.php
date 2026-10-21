@@ -49,7 +49,7 @@ final class PersonalAccessTokenVoterTest extends TestCase
         self::assertSame(VoterInterface::ACCESS_GRANTED, $result);
     }
 
-    public function testCreateReadWriteIsDeniedWithOnlyCreateGrant(): void
+    public function testCreateWithWriteToolsIsDeniedWithOnlyCreateGrant(): void
     {
         $voter = $this->createVoter(isGrantedMap: [
             [AnzuUser::ROLE_SUPER_ADMIN, null, false],

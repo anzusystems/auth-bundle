@@ -16,10 +16,10 @@ final class PersonalAccessTokenCreateDto
     private ?DateTimeImmutable $expiresAt = null;
 
     /**
-     * @var list<string>
+     * @var list<string>|null
      */
     #[Serialize]
-    private array $writeTools = [];
+    private ?array $writeTools = null;
 
     public function getName(): string
     {
@@ -50,13 +50,13 @@ final class PersonalAccessTokenCreateDto
      */
     public function getWriteTools(): array
     {
-        return $this->writeTools;
+        return $this->writeTools ?? [];
     }
 
     /**
-     * @param list<string> $writeTools
+     * @param list<string>|null $writeTools
      */
-    public function setWriteTools(array $writeTools): self
+    public function setWriteTools(?array $writeTools): self
     {
         $this->writeTools = $writeTools;
 

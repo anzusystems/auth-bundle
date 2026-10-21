@@ -134,6 +134,36 @@ Authorization uses the `auth_personalAccessToken_(create|createWithWriteTools|re
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
 configured via `create_role` (default `ROLE_MCP`).
 
+Declare these permissions in the host's common-bundle permission config (`anzu_systems_common.permissions.config`),
+together with their translations, so the admin can grant them. Without the declaration the admin cannot grant them,
+and `auth_personalAccessToken_createWithWriteTools` stays with super admins, who hold every permission checked through
+`AbstractVoter` implicitly:
+
+```yaml
+anzu_systems_common:
+  permissions:
+    config:
+      auth_personalAccessToken:
+        read:
+        create:
+        createWithWriteTools:
+        revoke:
+    translation:
+      subjects:
+        auth_personalAccessToken:
+          en: Personal access token
+          sk: Osobný prístupový token
+      actions:
+        createWithWriteTools:
+          en: Create with write tools
+          sk: Vytvor so zápisovými nástrojmi
+        revoke:
+          en: Revoke
+          sk: Zruš
+```
+
+Add `read` and `create` to `translation.actions` as well if the host does not translate them yet.
+
 Every token carries the list of MCP write tools it may call (`AbstractPersonalAccessToken::getWriteTools()`), fixed at
 creation; an empty list is a read-only token. The list is stored in the nullable JSON column `write_tools` — add it with
 a migration, e.g. `ALTER TABLE personal_access_token ADD write_tools JSON DEFAULT NULL`; tokens created before keep

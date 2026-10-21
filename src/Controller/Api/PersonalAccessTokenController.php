@@ -78,7 +78,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     {
         AnzuApp::throwOnReadOnlyMode();
         $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE);
-        if (count($dto->getWriteTools()) > 0) {
+        if (false === empty($dto->getWriteTools())) {
             $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
         }
         if ($this->hasUngrantableWriteTool($dto->getWriteTools())) {
@@ -96,6 +96,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
             'personalAccessTokenId' => $result->personalAccessToken->getId(),
             'userId' => $this->getUser()
                 ->getId(),
+            'writeTools' => $result->personalAccessToken->getWriteTools(),
         ]);
 
         return $this->createdResponse($result);

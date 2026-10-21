@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Entity;
 
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteTools;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -47,6 +48,14 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
 
     #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH)]
     protected string $tokenHash = '';
+
+    /**
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
+    #[PersonalAccessTokenWriteTools]
+    protected ?array $writeTools = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -113,6 +122,25 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public function setTokenHash(string $tokenHash): static
     {
         $this->tokenHash = $tokenHash;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Serialize]
+    public function getWriteTools(): array
+    {
+        return $this->writeTools ?? [];
+    }
+
+    /**
+     * @param array<string> $writeTools
+     */
+    public function setWriteTools(array $writeTools): static
+    {
+        $this->writeTools = array_values($writeTools);
 
         return $this;
     }

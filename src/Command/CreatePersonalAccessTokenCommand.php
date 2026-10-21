@@ -32,6 +32,9 @@ final class CreatePersonalAccessTokenCommand extends Command
     private const string OPTION_NAME = 'name';
     private const string OPTION_EXPIRES_AT = 'expires-at';
     private const string OPTION_NEVER_EXPIRES = 'never-expires';
+    private const string OPTION_WRITE_TOOL = 'write-tool';
+    private const string WRITE_TOOLS_SEPARATOR = ', ';
+    private const string WRITE_TOOLS_NONE = 'none, the token is read only';
     private const string EXPIRES_AT_NEVER = 'never';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
@@ -60,6 +63,11 @@ final class CreatePersonalAccessTokenCommand extends Command
                 'Create a token without expiration (mutually exclusive with --%s).',
                 self::OPTION_EXPIRES_AT,
             ))
+            ->addOption(
+                name: self::OPTION_WRITE_TOOL,
+                mode: InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
+                description: 'Name of an MCP write tool the token may call, repeat the option to grant more tools. Without it the token is read only.',
+            )
         ;
     }
 
@@ -109,12 +117,15 @@ final class CreatePersonalAccessTokenCommand extends Command
             return self::FAILURE;
         }
 
+        $writeTools = array_map(strval(...), (array) $input->getOption(self::OPTION_WRITE_TOOL));
+
         try {
             $result = $this->personalAccessTokenFacade->create(
                 user: $user,
                 name: $name,
                 expiresAt: $expiresAt,
                 neverExpires: $neverExpires,
+                writeTools: $writeTools,
             );
         } catch (ValidationException $exception) {
             $output->writeln(sprintf(
@@ -130,6 +141,10 @@ final class CreatePersonalAccessTokenCommand extends Command
             'Expires at: %s',
             $result->personalAccessToken->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
+        $output->writeln(sprintf(
+            'Write tools: %s',
+            $this->formatWriteTools($result->personalAccessToken->getWriteTools()),
+        ));
 
         return self::SUCCESS;
     }
@@ -142,5 +157,17 @@ final class CreatePersonalAccessTokenCommand extends Command
         }
 
         return new DateTimeImmutable($expiresAtOption);
+    }
+
+    /**
+     * @param list<string> $writeTools
+     */
+    private function formatWriteTools(array $writeTools): string
+    {
+        if ([] === $writeTools) {
+            return self::WRITE_TOOLS_NONE;
+        }
+
+        return implode(self::WRITE_TOOLS_SEPARATOR, $writeTools);
     }
 }

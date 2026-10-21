@@ -19,12 +19,15 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessToken
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\NoopPersonalAccessTokenExpiryNotifier;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenWriteToolResolver;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsValidator;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\ValidateOAuth2AccessTokenProcess;
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\RefreshTokenStorage\RedisRefreshTokenStorage;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
+use AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Serializer\Handler\Handlers\JwtHandler;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
@@ -216,6 +219,17 @@ final class AnzuSystemsAuthExtension extends Extension
         ;
 
         $container
+            ->register(PersonalAccessTokenWriteToolResolver::class)
+            ->setAutowired(true)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenWriteToolsValidator::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+        ;
+
+        $container
             ->register(NoopPersonalAccessTokenExpiryNotifier::class)
         ;
         $container->setAlias(PersonalAccessTokenExpiryNotifierInterface::class, NoopPersonalAccessTokenExpiryNotifier::class);
@@ -231,6 +245,12 @@ final class AnzuSystemsAuthExtension extends Extension
             ->setAutowired(true)
             ->setAutoconfigured(true)
             ->setArgument('$createRole', $config['create_role'])
+        ;
+
+        $container
+            ->register(McpToolWriteVoter::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
         ;
 
         $container

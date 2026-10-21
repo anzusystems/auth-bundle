@@ -29,6 +29,8 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
     private const int USER_ID = 42;
     private const string USER_ENTITY_CLASS = 'App\Entity\User';
     private const string PLAIN_TOKEN = AbstractPersonalAccessToken::TOKEN_PREFIX . 'a1b2c3d4';
+    private const string FIREWALL_NAME = 'mcp';
+    private const string WRITE_TOOL = 'create_quiz';
 
     private PersonalAccessTokenAuthCache $authCache;
     private EntityManagerInterface $entityManager;
@@ -79,9 +81,9 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertTrue($this->authenticator->supports($this->createRequest('bearer ' . self::PLAIN_TOKEN)));
     }
 
-    public function testAuthenticateReturnsCachedUser(): void
+    public function testAuthenticateReturnsCachedUserWithTokenWriteTools(): void
     {
-        $this->storeTokenForPlainToken();
+        $this->storeTokenForPlainToken([self::WRITE_TOOL]);
         $user = $this->createConfiguredStub(AnzuUser::class, [
             'getId' => self::USER_ID,
             'isEnabled' => true,
@@ -90,8 +92,12 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
             ->willReturn($user);
 
         $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+        $writeTools = $this->authenticator
+            ->createToken($passport, self::FIREWALL_NAME)
+            ->getAttribute(PersonalAccessTokenAuthenticator::WRITE_TOOLS_ATTRIBUTE);
 
         self::assertSame($user, $passport->getUser());
+        self::assertSame([self::WRITE_TOOL], $writeTools);
     }
 
     public function testAuthenticateRejectsDisabledUser(): void
@@ -129,14 +135,21 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertNotSame($missing, $invalid);
     }
 
-    private function storeTokenForPlainToken(): void
+    /**
+     * @param list<string> $writeTools
+     */
+    private function storeTokenForPlainToken(array $writeTools = []): void
     {
         $tokenHash = AbstractPersonalAccessToken::hashToken(self::PLAIN_TOKEN);
         $this->authCache->storeToken(
-            $tokenHash,
-            $this->authCache->getInvalidationVersion($tokenHash),
-            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID),
-            AnzuApp::date('+1 hour'),
+            tokenHash: $tokenHash,
+            version: $this->authCache->getInvalidationVersion($tokenHash),
+            token: new CachedPersonalAccessToken(
+                personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
+                userId: self::USER_ID,
+                writeTools: $writeTools,
+            ),
+            expiresAt: AnzuApp::date('+1 hour'),
         );
     }
 

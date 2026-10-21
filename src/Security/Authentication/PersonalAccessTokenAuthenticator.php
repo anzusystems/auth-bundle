@@ -27,6 +27,8 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
 
 final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
+    public const string WRITE_TOOLS_ATTRIBUTE = 'personal_access_token_write_tools';
+
     private const string AUTHORIZATION_HEADER = 'Authorization';
     private const string BEARER_PREFIX = 'Bearer ';
     private const string WWW_AUTHENTICATE_HEADER = 'WWW-Authenticate';
@@ -76,9 +78,20 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
             throw new AuthenticationException(sprintf('User (%d) is not active or is disabled!', (int) $user->getId()));
         }
 
-        return new SelfValidatingPassport(
+        $passport = new SelfValidatingPassport(
             new UserBadge((string) $user->getId(), static fn (): AnzuUser => $user)
         );
+        $passport->setAttribute(self::WRITE_TOOLS_ATTRIBUTE, $cachedToken->writeTools);
+
+        return $passport;
+    }
+
+    public function createToken(Passport $passport, string $firewallName): TokenInterface
+    {
+        $token = parent::createToken($passport, $firewallName);
+        $token->setAttribute(self::WRITE_TOOLS_ATTRIBUTE, $passport->getAttribute(self::WRITE_TOOLS_ATTRIBUTE));
+
+        return $token;
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response

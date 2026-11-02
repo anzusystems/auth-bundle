@@ -30,6 +30,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
     private const int USER_ID = 42;
     private const int PERSONAL_ACCESS_TOKEN_ID = 7;
     private const string WRITE_TOOL = 'create_quiz';
+    private const string READ_TOOL = 'list_published_articles';
 
     private PersonalAccessTokenAuthCache $authCache;
     private PersonalAccessTokenFacade $facade;
@@ -112,6 +113,25 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         );
 
         self::assertSame([self::WRITE_TOOL], $result->personalAccessToken->getWriteTools());
+    }
+
+    public function testCreateStoresRequestedTools(): void
+    {
+        $result = $this->facade->create(
+            user: $this->createConfiguredStub(AnzuUser::class, []),
+            name: 'test-token',
+            writeTools: [self::WRITE_TOOL],
+            tools: [self::READ_TOOL, self::WRITE_TOOL],
+        );
+
+        self::assertSame([self::READ_TOOL, self::WRITE_TOOL], $result->personalAccessToken->getTools());
+    }
+
+    public function testCreateWithoutToolsDoesNotNarrowTheToken(): void
+    {
+        $result = $this->facade->create($this->createConfiguredStub(AnzuUser::class, []), 'test-token');
+
+        self::assertNull($result->personalAccessToken->getTools());
     }
 
     public function testCreateRespectsExplicitExpiresAt(): void

@@ -14,8 +14,11 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenA
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenWriteToolResolver;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenToolsValidator;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsValidator;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsWithinToolsValidator;
 use AnzuSystems\AuthBundle\Domain\Process\GrantAccessOnResponseProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\RefreshTokenProcess;
@@ -23,10 +26,12 @@ use AnzuSystems\AuthBundle\Event\Listener\LogoutListener;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler;
 use AnzuSystems\AuthBundle\Security\AuthenticationSuccessHandler;
+use AnzuSystems\AuthBundle\Security\PersonalAccessTokenToolScopeProvider;
 use AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\User;
+use AnzuSystems\CommonBundle\Mcp\Security\McpToolScopeProviderInterface;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Yaml\Parser;
@@ -105,6 +110,14 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertHasDefinition(CreatePersonalAccessTokenCommand::class);
         $this->assertHasDefinition(NotifyExpiringPersonalAccessTokensCommand::class);
         $this->assertHasDefinition(PersonalAccessTokenController::class);
+        $this->assertHasDefinition(PersonalAccessTokenToolResolver::class);
+        $this->assertHasDefinition(PersonalAccessTokenToolsValidator::class);
+        $this->assertHasDefinition(PersonalAccessTokenWriteToolsWithinToolsValidator::class);
+        $this->assertHasDefinition(PersonalAccessTokenToolScopeProvider::class);
+        self::assertSame(
+            PersonalAccessTokenToolScopeProvider::class,
+            (string) $this->configuration->getAlias(McpToolScopeProviderInterface::class),
+        );
 
         $repositoryArguments = $this->configuration->getDefinition(PersonalAccessTokenRepository::class)->getArguments();
         self::assertSame(PersonalAccessToken::class, $repositoryArguments['$entityClass']);

@@ -33,6 +33,7 @@ final readonly class PersonalAccessTokenFacade
 
     /**
      * @param array<string> $writeTools
+     * @param array<string>|null $tools
      *
      * @throws ValidationException
      * @throws RandomException
@@ -43,6 +44,7 @@ final readonly class PersonalAccessTokenFacade
         ?DateTimeImmutable $expiresAt = null,
         bool $neverExpires = false,
         array $writeTools = [],
+        ?array $tools = null,
     ): PersonalAccessTokenCreateResult {
         if ($neverExpires && $expiresAt instanceof DateTimeImmutable) {
             throw new ValidationException()
@@ -55,6 +57,7 @@ final readonly class PersonalAccessTokenFacade
             ->setName($name)
             ->setTokenHash(AbstractPersonalAccessToken::hashToken($plainToken))
             ->setWriteTools($writeTools)
+            ->setTools($tools)
         ;
         if ($expiresAt instanceof DateTimeImmutable) {
             $personalAccessToken->setExpiresAt($expiresAt);

@@ -17,6 +17,7 @@ use AnzuSystems\Contracts\Entity\AnzuUser;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,6 +32,7 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
     private const string PLAIN_TOKEN = AbstractPersonalAccessToken::TOKEN_PREFIX . 'a1b2c3d4';
     private const string FIREWALL_NAME = 'mcp';
     private const string WRITE_TOOL = 'create_quiz';
+    private const string TOOL = 'list_published_articles';
 
     private PersonalAccessTokenAuthCache $authCache;
     private EntityManagerInterface $entityManager;
@@ -100,6 +102,36 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertSame([self::WRITE_TOOL], $writeTools);
     }
 
+    /**
+     * @param list<string>|null $tools
+     */
+    #[DataProvider('toolsDataProvider')]
+    public function testAuthenticatePutsTokenToolsOnTheSecurityToken(?array $tools): void
+    {
+        $this->storeTokenForPlainToken(tools: $tools);
+        $this->entityManager->method('find')
+            ->willReturn($this->createConfiguredStub(AnzuUser::class, [
+                'getId' => self::USER_ID,
+                'isEnabled' => true,
+            ]));
+
+        $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+        $token = $this->authenticator->createToken($passport, self::FIREWALL_NAME);
+
+        self::assertSame($tools, $token->getAttribute(PersonalAccessTokenAuthenticator::TOOLS_ATTRIBUTE));
+    }
+
+    /**
+     * @return array<string, array{0: list<string>|null}>
+     */
+    public static function toolsDataProvider(): array
+    {
+        return [
+            'not narrowed' => [null],
+            'narrowed' => [[self::TOOL]],
+        ];
+    }
+
     public function testAuthenticateRejectsDisabledUser(): void
     {
         $this->storeTokenForPlainToken();
@@ -137,8 +169,9 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
 
     /**
      * @param list<string> $writeTools
+     * @param list<string>|null $tools
      */
-    private function storeTokenForPlainToken(array $writeTools = []): void
+    private function storeTokenForPlainToken(array $writeTools = [], ?array $tools = null): void
     {
         $tokenHash = AbstractPersonalAccessToken::hashToken(self::PLAIN_TOKEN);
         $this->authCache->storeToken(
@@ -148,6 +181,7 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
                 personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
                 userId: self::USER_ID,
                 writeTools: $writeTools,
+                tools: $tools,
             ),
             expiresAt: AnzuApp::date('+1 hour'),
         );

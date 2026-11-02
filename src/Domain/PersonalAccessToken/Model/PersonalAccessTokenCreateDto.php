@@ -21,6 +21,12 @@ final class PersonalAccessTokenCreateDto
     #[Serialize]
     private ?array $writeTools = null;
 
+    /**
+     * @var list<string>|null
+     */
+    #[Serialize]
+    private ?array $tools = null;
+
     public function getName(): string
     {
         return $this->name;
@@ -59,6 +65,24 @@ final class PersonalAccessTokenCreateDto
     public function setWriteTools(?array $writeTools): self
     {
         $this->writeTools = $writeTools;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getTools(): ?array
+    {
+        return $this->tools;
+    }
+
+    /**
+     * @param list<string>|null $tools
+     */
+    public function setTools(?array $tools): self
+    {
+        $this->tools = $tools;
 
         return $this;
     }

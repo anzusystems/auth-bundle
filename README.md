@@ -121,7 +121,7 @@ security:
         - AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator
 ```
 
-Management API routes (list/create/revoke/write-tools) are provided by
+Management API routes (list/create/revoke/write-tools/tools) are provided by
 `AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController` attribute routes — import them with a prefix:
 
 ```php
@@ -183,6 +183,17 @@ grants the common-bundle MCP write attribute (`McpToolAccessChecker::WRITE_PERMI
 subject) only for the tools the token lists — a token not listing the tool or a JWT/session is denied, a super admin
 included.
 
+A token can also narrow the MCP tools its user may use: `tools` (`AbstractPersonalAccessToken::getTools()`), fixed at
+creation and stored in the nullable JSON column `tools` (add it with a migration, e.g.
+`ALTER TABLE personal_access_token ADD tools JSON DEFAULT NULL`). `null` means no narrowing; a token never gets more than
+its user. `tools` must be a non-empty list of tools the creator may use — `GET <prefix>/personal-access-token/tools`
+(allowed with `auth_personalAccessToken_create`) returns them as `[{"name": "list_published_articles", "writeTool": false}, …]`
+— and `writeTools` must be a subset of it. The console command checks the configuration only, as it does for write
+tools: `tools` must be tools of `tool_permissions` (`McpToolAccessChecker::getToolNames()`) and `writeTools` must still
+be a subset of `tools`. The authenticator copies the list onto the security token
+(`PersonalAccessTokenAuthenticator::TOOLS_ATTRIBUTE`), and `PersonalAccessTokenToolScopeProvider` is registered as
+common-bundle's `McpToolScopeProviderInterface`, so the MCP server hides and refuses the other tools.
+
 Deleting a user: call `PersonalAccessTokenFacade::deleteByUser($user)` before removing the user entity — it deletes the
 user's tokens in one flush and invalidates their auth cache entries. The `user` join column also declares `onDelete: CASCADE`,
 but that is best-effort only: the `created_by`/`modified_by` columns of the user's own tokens still reference the user, so
@@ -190,12 +201,12 @@ the explicit `deleteByUser()` call is the contract.
 
 Console commands:
 
-* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--write-tool=<name> ...]` —
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--write-tool=<name> ...] [--tool=<name> ...]` —
   prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
   notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
   never-expiring token can only be issued deliberately for a system user (e.g. a service integration). `--write-tool`
-  is repeatable, one write tool per option; without it the token is read only. The command prints the granted write
-  tools.
+  is repeatable, one write tool per option; without it the token is read only. `--tool` is repeatable too; without
+  it the token is not narrowed. The command prints the granted write tools and tools.
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

@@ -10,11 +10,13 @@ final readonly class CachedPersonalAccessToken
 {
     /**
      * @param list<string> $writeTools
+     * @param list<string>|null $tools
      */
     public function __construct(
         public int $personalAccessTokenId,
         public int $userId,
         public array $writeTools,
+        public ?array $tools = null,
     ) {
     }
 
@@ -25,6 +27,7 @@ final readonly class CachedPersonalAccessToken
             userId: (int) $personalAccessToken->getUser()
                 ->getId(),
             writeTools: $personalAccessToken->getWriteTools(),
+            tools: $personalAccessToken->getTools(),
         );
     }
 }

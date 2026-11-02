@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Entity;
 
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenTools;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteTools;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsWithinTools;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -23,6 +25,7 @@ use LogicException;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\MappedSuperclass]
+#[PersonalAccessTokenWriteToolsWithinTools]
 abstract class AbstractPersonalAccessToken implements IdentifiableInterface, TimeTrackingInterface, UserTrackingInterface
 {
     use IdentityIntTrait;
@@ -33,6 +36,8 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public const int TOKEN_HASH_LENGTH = 64;
     public const string DEFAULT_EXPIRES_AT_DATE = '+2 months';
     public const string MAX_EXPIRES_AT_DATE = '+1 year';
+
+    private const int TOOLS_MIN_COUNT = 1;
 
     #[ORM\ManyToOne(targetEntity: AnzuUser::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -56,6 +61,16 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
     #[PersonalAccessTokenWriteTools]
     protected ?array $writeTools = null;
+
+    /**
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Serialize]
+    #[Assert\Count(min: self::TOOLS_MIN_COUNT, minMessage: ValidationException::ERROR_FIELD_LENGTH_MIN)]
+    #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
+    #[PersonalAccessTokenTools]
+    protected ?array $tools = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -141,6 +156,24 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public function setWriteTools(array $writeTools): static
     {
         $this->writeTools = array_values($writeTools);
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getTools(): ?array
+    {
+        return $this->tools;
+    }
+
+    /**
+     * @param array<string>|null $tools
+     */
+    public function setTools(?array $tools): static
+    {
+        $this->tools = is_array($tools) ? array_values($tools) : null;
 
         return $this;
     }

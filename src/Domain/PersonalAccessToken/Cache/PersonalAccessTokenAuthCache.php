@@ -14,7 +14,7 @@ final readonly class PersonalAccessTokenAuthCache
 {
     public const int USER_ID_EXPIRE_TIME = 300;
 
-    private const string CACHE_KEY_PREFIX = 'pat_auth_token_v2';
+    private const string CACHE_KEY_PREFIX = 'pat_auth_token_v3';
     private const string VERSION_KEY_PREFIX = 'pat_auth_version';
     private const int VERSION_INITIAL = 1;
     private const int VERSION_INCREMENT = 1;

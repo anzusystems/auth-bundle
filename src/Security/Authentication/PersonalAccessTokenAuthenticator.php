@@ -28,6 +28,7 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
 final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
     public const string WRITE_TOOLS_ATTRIBUTE = 'personal_access_token_write_tools';
+    public const string TOOLS_ATTRIBUTE = 'personal_access_token_tools';
 
     private const string AUTHORIZATION_HEADER = 'Authorization';
     private const string BEARER_PREFIX = 'Bearer ';
@@ -82,6 +83,7 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
             new UserBadge((string) $user->getId(), static fn (): AnzuUser => $user)
         );
         $passport->setAttribute(self::WRITE_TOOLS_ATTRIBUTE, $cachedToken->writeTools);
+        $passport->setAttribute(self::TOOLS_ATTRIBUTE, $cachedToken->tools);
 
         return $passport;
     }
@@ -90,6 +92,7 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
     {
         $token = parent::createToken($passport, $firewallName);
         $token->setAttribute(self::WRITE_TOOLS_ATTRIBUTE, $passport->getAttribute(self::WRITE_TOOLS_ATTRIBUTE));
+        $token->setAttribute(self::TOOLS_ATTRIBUTE, $passport->getAttribute(self::TOOLS_ATTRIBUTE));
 
         return $token;
     }

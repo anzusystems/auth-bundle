@@ -10,8 +10,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - php-version: 8.4
-            docker-image: 'anzusystems/php:5.2.0-php84-cli'
           - php-version: 8.5
             docker-image: 'anzusystems/php:5.2.0-php85-cli'
 
@@ -42,8 +40,8 @@ jobs:
       - name: Run ECS style check
         run: vendor/bin/ecs check -vv
 
-      - name: Run PSALM static analysis
-        run: vendor/bin/psalm
+      - name: Run PHPStan static analysis
+        run: vendor/bin/phpstan analyse --memory-limit=1G
 
       - name: Run PHPUnit tests
         run: vendor/bin/phpunit

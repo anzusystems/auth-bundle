@@ -1,0 +1,15 @@
+#!/bin/bash
+# Script used to run PHPStan check in the application docker container
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+CHECK_DIR=${1:-src}
+
+cd "${PROJECT_ROOT}" || exit 1
+
+if [ -f /.dockerenv ]; then
+    echo "[INFO] Running PHPStan check"
+    vendor/bin/phpstan analyse --configuration=phpstan.neon --memory-limit=1G "${CHECK_DIR}"
+    exit
+fi
+
+bin/docker-compose run --rm app bash -c \'bin/phpstan "${CHECK_DIR}"\'

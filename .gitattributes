@@ -11,4 +11,4 @@ composer.lock export-ignore
 symfony.lock export-ignore
 bin export-ignore
 ecs.php export-ignore
-psalm.xml export-ignore
+phpstan.neon export-ignore

@@ -43,6 +43,7 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Serialize(handler: EntityIdHandler::class)]
     #[Assert\NotNull(message: ValidationException::ERROR_FIELD_EMPTY)]
+    // @phpstan-ignore doctrine.associationType (a new token has no user until it is set; NotNull rejects persisting it without one)
     protected ?AnzuUser $user = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, options: ['default' => ''])]
@@ -86,6 +87,7 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[Serialize]
     protected ?DateTimeImmutable $lastUsedAt = null;
 
+    // @phpstan-ignore doctrine.finalConstructor (PersonalAccessTokenFacade instantiates the configured class-string without arguments)
     final public function __construct()
     {
         $this->expiresAt = AnzuApp::date(self::DEFAULT_EXPIRES_AT_DATE);

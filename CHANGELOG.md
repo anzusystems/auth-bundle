@@ -15,6 +15,9 @@
 * BC change: `CachedPersonalAccessToken::__construct()` requires the token's `writeTools` as its third argument and `PersonalAccessTokenController` requires `PersonalAccessTokenWriteToolResolver` (autowired); code constructing them by hand (tests) must pass them.
 * BC change: `anzusystems/common-bundle` requirement raised to `^11.9` (`McpToolAccessChecker::WRITE_PERMISSION`, `getWriteToolNames()` and `getPermittedWriteToolNames()`). common-bundle 11.9 treats every MCP tool without `readOnlyHint: true` on its `#[McpTool]` as a write tool, hidden from `tools/list` and refused on `tools/call` unless the personal access token grants it, so annotate the host's read tools before upgrading.
 
+### Changes
+* BC change: the bundle requires PHP 8.5, as `anzusystems/common-bundle` on this release line does.
+
 ## [5.2.1](https://github.com/anzusystems/auth-bundle/compare/5.2.0...5.2.1) (2026-09-16)
 
 ### Security

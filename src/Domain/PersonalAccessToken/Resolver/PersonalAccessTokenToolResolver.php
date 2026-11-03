@@ -44,6 +44,7 @@ final readonly class PersonalAccessTokenToolResolver
             static fn (string $toolName): PersonalAccessTokenTool => new PersonalAccessTokenTool(
                 name: $toolName,
                 writeTool: $toolAccessChecker->isWriteTool($toolName),
+                category: $toolAccessChecker->getToolCategory($toolName),
             ),
             $toolAccessChecker->getPermittedToolNames(),
         );

@@ -25,6 +25,7 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
     private const string FIREWALL_NAME = 'api';
     private const string READ_TOOL = 'list_published_articles';
     private const string WRITE_TOOL = 'create_quiz';
+    private const string PREVIEW_TOOL = 'preview_quiz';
     private const string NOT_PERMITTED_TOOL = 'update_robots_txt';
     private const string UNKNOWN_TOOL = 'delete_article';
     private const string READ_PERMISSION = 'cms_article_read';
@@ -64,10 +65,12 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
             'permitted read and write tools' => [true, true, [self::READ_TOOL, self::WRITE_TOOL], []],
             'tool without permission' => [true, true, [self::READ_TOOL, self::NOT_PERMITTED_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
             'unknown tool' => [true, true, [self::UNKNOWN_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
+            'preview of a permitted write tool' => [true, true, [self::WRITE_TOOL, self::PREVIEW_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
             'no narrowing without mcp' => [false, true, null, []],
             'tool without mcp' => [false, true, [self::READ_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
             'console: configured tool without permission' => [true, false, [self::READ_TOOL, self::NOT_PERMITTED_TOOL], []],
             'console: unknown tool' => [true, false, [self::READ_TOOL, self::UNKNOWN_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
+            'console: preview tool' => [true, false, [self::WRITE_TOOL, self::PREVIEW_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
             'console: tool without mcp' => [false, false, [self::READ_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
         ];
     }
@@ -86,7 +89,8 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
                 self::NOT_PERMITTED_TOOL => self::NOT_PERMITTED_PERMISSION,
             ],
             security: $security,
-            readOnlyToolNames: [self::READ_TOOL],
+            readOnlyToolNames: [self::READ_TOOL, self::PREVIEW_TOOL],
+            writeToolNamesByPreview: [self::PREVIEW_TOOL => self::WRITE_TOOL],
         );
         $toolResolver = $mcpEnabled
             ? new PersonalAccessTokenToolResolver($toolAccessChecker)

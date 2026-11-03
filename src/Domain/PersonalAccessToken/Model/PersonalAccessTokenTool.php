@@ -13,6 +13,8 @@ final readonly class PersonalAccessTokenTool
         public string $name,
         #[Serialize]
         public bool $writeTool,
+        #[Serialize]
+        public string $category,
     ) {
     }
 }

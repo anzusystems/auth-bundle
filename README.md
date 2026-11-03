@@ -187,10 +187,15 @@ A token can also narrow the MCP tools its user may use: `tools` (`AbstractPerson
 creation and stored in the nullable JSON column `tools` (add it with a migration, e.g.
 `ALTER TABLE personal_access_token ADD tools JSON DEFAULT NULL`). `null` means no narrowing; a token never gets more than
 its user. `tools` must be a non-empty list of tools the creator may use — `GET <prefix>/personal-access-token/tools`
-(allowed with `auth_personalAccessToken_create`) returns them as `[{"name": "list_published_articles", "writeTool": false}, …]`
-— and `writeTools` must be a subset of it. The console command checks the configuration only, as it does for write
-tools: `tools` must be tools of `tool_permissions` (`McpToolAccessChecker::getToolNames()`) and `writeTools` must still
-be a subset of `tools`. The authenticator copies the list onto the security token
+(allowed with `auth_personalAccessToken_create`) returns them as
+`[{"name": "list_published_articles", "writeTool": false, "category": "articles"}, …]` — and `writeTools` must be a
+subset of it. `category` is the category of the tool from `#[AsMcpTool(category: …)]`
+(`McpToolAccessChecker::getToolCategory()`), camelCase, so a client can build a translation key from it; the items come
+in `tool_permissions` order, not grouped by category. An MCP
+preview tool (`#[AsMcpTool(previewOf: …)]`) is never listed and is rejected in `tools` (`error_field_invalid`) and
+`writeTools` like any other name that is not offered: a token gets it together with its write tool. The console command
+checks the configuration only, as it does for write tools: `tools` must be tools of `tool_permissions`
+(`McpToolAccessChecker::getToolNames()`) and `writeTools` must still be a subset of `tools`. The authenticator copies the list onto the security token
 (`PersonalAccessTokenAuthenticator::TOOLS_ATTRIBUTE`), and `PersonalAccessTokenToolScopeProvider` is registered as
 common-bundle's `McpToolScopeProviderInterface`, so the MCP server hides and refuses the other tools.
 

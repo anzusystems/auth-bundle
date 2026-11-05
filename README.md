@@ -181,7 +181,7 @@ implicitly, otherwise the answer is 403. `GET <prefix>/personal-access-token/too
 `auth_personalAccessToken_create`) returns the tools the current user may grant as
 `[{"name": "list_published_articles", "writeTool": false, "category": "articles"}, …]`, so a creation form can offer
 them. `category` is the category of the tool from `#[AsMcpTool(category: …)]`, camelCase, so a client can build a
-translation key from it; the items come in `tool_permissions` order, not grouped by category.
+translation key from it; the items come in the order of `McpToolAccessChecker::getPermittedToolNames()`, not grouped by category.
 
 The authenticator puts a common-bundle `McpToolScope` on the security token
 (`PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE`), and `PersonalAccessTokenToolScopeProvider` is registered as

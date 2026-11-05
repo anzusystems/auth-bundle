@@ -33,7 +33,7 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
         bool $mcpEnabled,
         array $expectedTools,
     ): void {
-        self::assertEquals($expectedTools, $this->createResolver($mcpEnabled)->resolveGrantableTools());
+        self::assertEquals($expectedTools, $this->createResolver($mcpEnabled)->resolveGrantableTools(withWriteTools: true));
     }
 
     /**
@@ -52,6 +52,14 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
             ],
             'without mcp' => [false, []],
         ];
+    }
+
+    public function testGrantableToolsLeaveOutWriteToolsWhenTheUserMayNotGrantThem(): void
+    {
+        self::assertSame(
+            [self::READ_TOOL, self::SECOND_READ_TOOL],
+            array_column($this->createResolver(true)->resolveGrantableTools(withWriteTools: false), 'name'),
+        );
     }
 
     public function testToolNamesAreSplitIntoReadAndWriteTools(): void

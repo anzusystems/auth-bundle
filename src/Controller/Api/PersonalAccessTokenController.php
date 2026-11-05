@@ -64,7 +64,9 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
         $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE);
 
         return $this->okResponse(
-            $this->toolResolver->resolveGrantableTools()
+            $this->toolResolver->resolveGrantableTools(
+                withWriteTools: $this->isGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS),
+            )
         );
     }
 

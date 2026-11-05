@@ -6,7 +6,9 @@ namespace AnzuSystems\AuthBundle\DependencyInjection;
 
 use AnzuSystems\AuthBundle\Command\ChangeApiTokenCommand;
 use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
+use AnzuSystems\AuthBundle\Command\ListPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Command\NotifyExpiringPersonalAccessTokensCommand;
+use AnzuSystems\AuthBundle\Command\RevokePersonalAccessTokenCommand;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
 use AnzuSystems\AuthBundle\Contracts\PersonalAccessTokenExpiryNotifierInterface;
@@ -251,6 +253,19 @@ final class AnzuSystemsAuthExtension extends Extension
             ->setAutowired(true)
             ->setAutoconfigured(true)
             ->setArgument('$userEntityClass', '%anzu_systems_common.user_entity_class%')
+        ;
+
+        $container
+            ->register(ListPersonalAccessTokensCommand::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+            ->setArgument('$userEntityClass', '%anzu_systems_common.user_entity_class%')
+        ;
+
+        $container
+            ->register(RevokePersonalAccessTokenCommand::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
         ;
 
         $container

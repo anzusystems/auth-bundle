@@ -195,12 +195,17 @@ the explicit `deleteByUser()` call is the contract.
 
 Console commands:
 
-* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--write-tool=<name> ...] [--read-tool=<name> ...]` —
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--write-tool=<name> ...] [--read-tool=<name> ... | --no-read-tools]` —
   prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
   notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
   never-expiring token can only be issued deliberately for a system user (e.g. a service integration). `--write-tool`
   is repeatable, one write tool per option; without it the token is read only. `--read-tool` is repeatable too; without
-  it the token keeps every read tool its user may use. The command prints the granted tools.
+  it the token keeps every read tool its user may use, and `--no-read-tools` gives it none. The command prints the
+  granted tools.
+* `anzu:personal-access-token:list <userId>` — lists a user's tokens with id, status, dates and tools, never the token
+  itself.
+* `anzu:personal-access-token:revoke <id>` — revokes a token of any user, it stops working at once. A token already
+  revoked stays as it is.
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

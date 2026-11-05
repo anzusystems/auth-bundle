@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Tests\DependencyInjection;
 
 use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
+use AnzuSystems\AuthBundle\Command\ListPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Command\NotifyExpiringPersonalAccessTokensCommand;
+use AnzuSystems\AuthBundle\Command\RevokePersonalAccessTokenCommand;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Contracts\PersonalAccessTokenExpiryNotifierInterface;
 use AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController;
@@ -96,6 +98,8 @@ final class AnzuSystemsAuthExtensionTest extends TestCase
         $this->assertHasDefinition(PersonalAccessTokenAuthenticator::class);
         $this->assertHasDefinition(PersonalAccessTokenVoter::class);
         $this->assertHasDefinition(CreatePersonalAccessTokenCommand::class);
+        $this->assertHasDefinition(ListPersonalAccessTokensCommand::class);
+        $this->assertHasDefinition(RevokePersonalAccessTokenCommand::class);
         $this->assertHasDefinition(NotifyExpiringPersonalAccessTokensCommand::class);
         $this->assertHasDefinition(PersonalAccessTokenController::class);
         $this->assertHasDefinition(PersonalAccessTokenToolResolver::class);

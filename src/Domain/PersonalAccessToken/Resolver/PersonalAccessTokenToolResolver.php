@@ -24,7 +24,7 @@ final readonly class PersonalAccessTokenToolResolver
             return [];
         }
 
-        return array_values(array_diff($toolAccessChecker->getToolNames(), $toolAccessChecker->getWriteToolNames()));
+        return array_diff($toolAccessChecker->getToolNames(), $toolAccessChecker->getWriteToolNames()) |> array_values(...);
     }
 
     /**
@@ -46,11 +46,16 @@ final readonly class PersonalAccessTokenToolResolver
     /**
      * @return list<PersonalAccessTokenTool>
      */
-    public function resolveGrantableTools(): array
+    public function resolveGrantableTools(bool $withWriteTools): array
     {
         $toolAccessChecker = $this->toolAccessChecker;
         if (null === $toolAccessChecker) {
             return [];
+        }
+
+        $toolNames = $toolAccessChecker->getPermittedToolNames();
+        if (false === $withWriteTools) {
+            $toolNames = array_diff($toolNames, $toolAccessChecker->getWriteToolNames()) |> array_values(...);
         }
 
         return array_map(
@@ -59,7 +64,7 @@ final readonly class PersonalAccessTokenToolResolver
                 writeTool: $toolAccessChecker->isWriteTool($toolName),
                 category: $toolAccessChecker->getToolCategory($toolName),
             ),
-            $toolAccessChecker->getPermittedToolNames(),
+            $toolNames,
         );
     }
 }

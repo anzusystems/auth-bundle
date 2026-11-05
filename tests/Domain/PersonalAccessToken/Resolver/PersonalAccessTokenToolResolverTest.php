@@ -6,6 +6,8 @@ namespace AnzuSystems\AuthBundle\Tests\Domain\PersonalAccessToken\Resolver;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenTool;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
+use AnzuSystems\CommonBundle\Mcp\McpToolDefinitions;
+use AnzuSystems\CommonBundle\Mcp\Model\McpToolDefinition;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolAccessChecker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -86,22 +88,14 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
             );
 
         return new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
-            toolPermissions: [
-                self::READ_TOOL => self::READ_PERMISSION,
-                self::WRITE_TOOL => self::WRITE_PERMISSION,
-                self::NOT_PERMITTED_TOOL => self::NOT_PERMITTED_PERMISSION,
-                self::SECOND_READ_TOOL => self::READ_PERMISSION,
-            ],
+            toolDefinitions: new McpToolDefinitions([
+                self::READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
+                self::WRITE_TOOL => new McpToolDefinition(permission: self::WRITE_PERMISSION, category: self::QUIZZES_CATEGORY, previewTool: self::PREVIEW_TOOL),
+                self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, category: self::QUIZZES_CATEGORY, previewOf: self::WRITE_TOOL),
+                self::NOT_PERMITTED_TOOL => new McpToolDefinition(permission: self::NOT_PERMITTED_PERMISSION, readOnly: true, category: self::DIAGNOSTICS_CATEGORY),
+                self::SECOND_READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
+            ]),
             security: $security,
-            readOnlyToolNames: [self::READ_TOOL, self::PREVIEW_TOOL, self::NOT_PERMITTED_TOOL, self::SECOND_READ_TOOL],
-            toolCategories: [
-                self::READ_TOOL => self::ARTICLES_CATEGORY,
-                self::WRITE_TOOL => self::QUIZZES_CATEGORY,
-                self::PREVIEW_TOOL => self::QUIZZES_CATEGORY,
-                self::NOT_PERMITTED_TOOL => self::DIAGNOSTICS_CATEGORY,
-                self::SECOND_READ_TOOL => self::ARTICLES_CATEGORY,
-            ],
-            writeToolNamesByPreview: [self::PREVIEW_TOOL => self::WRITE_TOOL],
         ));
     }
 }

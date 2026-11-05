@@ -8,6 +8,8 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTok
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenTools;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenToolsValidator;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
+use AnzuSystems\CommonBundle\Mcp\McpToolDefinitions;
+use AnzuSystems\CommonBundle\Mcp\Model\McpToolDefinition;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolAccessChecker;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -81,13 +83,12 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
         }
 
         return new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
-            toolPermissions: [
-                self::READ_TOOL => self::PERMISSION,
-                self::WRITE_TOOL => self::PERMISSION,
-            ],
+            toolDefinitions: new McpToolDefinitions([
+                self::READ_TOOL => new McpToolDefinition(permission: self::PERMISSION, readOnly: true),
+                self::WRITE_TOOL => new McpToolDefinition(permission: self::PERMISSION, previewTool: self::PREVIEW_TOOL),
+                self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, previewOf: self::WRITE_TOOL),
+            ]),
             security: $this->createStub(Security::class),
-            readOnlyToolNames: [self::READ_TOOL, self::PREVIEW_TOOL],
-            writeToolNamesByPreview: [self::PREVIEW_TOOL => self::WRITE_TOOL],
         ));
     }
 }

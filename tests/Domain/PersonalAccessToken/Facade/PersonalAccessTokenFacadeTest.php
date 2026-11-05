@@ -12,6 +12,8 @@ use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
+use AnzuSystems\CommonBundle\Mcp\McpToolDefinitions;
+use AnzuSystems\CommonBundle\Mcp\Model\McpToolDefinition;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolAccessChecker;
 use AnzuSystems\CommonBundle\Validator\Validator;
 use AnzuSystems\Contracts\AnzuApp;
@@ -87,14 +89,13 @@ final class PersonalAccessTokenFacadeTest extends TestCase
             $manager,
             new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
             new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
-                toolPermissions: [
-                    self::READ_TOOL => self::GRANTED_PERMISSION,
-                    self::WRITE_TOOL => self::GRANTED_PERMISSION,
-                    self::NOT_PERMITTED_READ_TOOL => self::DENIED_PERMISSION,
-                    self::NOT_PERMITTED_WRITE_TOOL => self::DENIED_PERMISSION,
-                ],
+                toolDefinitions: new McpToolDefinitions([
+                    self::READ_TOOL => new McpToolDefinition(permission: self::GRANTED_PERMISSION, readOnly: true),
+                    self::WRITE_TOOL => new McpToolDefinition(permission: self::GRANTED_PERMISSION),
+                    self::NOT_PERMITTED_READ_TOOL => new McpToolDefinition(permission: self::DENIED_PERMISSION, readOnly: true),
+                    self::NOT_PERMITTED_WRITE_TOOL => new McpToolDefinition(permission: self::DENIED_PERMISSION),
+                ]),
                 security: $security,
-                readOnlyToolNames: [self::READ_TOOL, self::NOT_PERMITTED_READ_TOOL],
             )),
             PersonalAccessToken::class,
         );

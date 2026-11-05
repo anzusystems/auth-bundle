@@ -6,8 +6,9 @@ namespace AnzuSystems\AuthBundle\Tests\Security;
 
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenToolScopeProvider;
+use AnzuSystems\CommonBundle\Mcp\Security\McpToolScope;
 use AnzuSystems\Contracts\Entity\AnzuUser;
-use PHPUnit\Framework\Attributes\DataProvider;
+use LogicException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
@@ -15,39 +16,51 @@ use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 final class PersonalAccessTokenToolScopeProviderTest extends TestCase
 {
     private const string FIREWALL_NAME = 'mcp';
-    private const string TOOL = 'list_published_articles';
 
-    /**
-     * @param array<string, mixed>|null $tokenAttributes
-     * @param list<string>|null $expectedTools
-     */
-    #[DataProvider('scopeDataProvider')]
-    public function testScopeComesFromThePersonalAccessTokenAttributes(?array $tokenAttributes, ?array $expectedTools): void
+    public function testRequestWithoutSecurityTokenHasNoScope(): void
     {
-        $tokenStorage = new TokenStorage();
-        if (is_array($tokenAttributes)) {
-            $token = new PostAuthenticationToken(
-                user: $this->createStub(AnzuUser::class),
-                firewallName: self::FIREWALL_NAME,
-                roles: [],
-            );
-            $token->setAttributes($tokenAttributes);
-            $tokenStorage->setToken($token);
-        }
+        self::assertNull(new PersonalAccessTokenToolScopeProvider(new TokenStorage())->provideToolScope());
+    }
 
-        self::assertSame($expectedTools, new PersonalAccessTokenToolScopeProvider($tokenStorage)->provideAllowedToolNames());
+    public function testTokenOfAnotherAuthenticatorHasNoScope(): void
+    {
+        self::assertNull($this->createProvider([])->provideToolScope());
+    }
+
+    public function testScopeComesFromThePersonalAccessToken(): void
+    {
+        $toolScope = new McpToolScope(['list_sites'], ['create_quiz']);
+
+        self::assertSame(
+            $toolScope,
+            $this->createProvider([PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE => $toolScope])
+                ->provideToolScope(),
+        );
+    }
+
+    public function testMalformedAttributeFailsInsteadOfOpeningEveryTool(): void
+    {
+        $provider = $this->createProvider([PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE => ['list_sites']]);
+
+        $this->expectException(LogicException::class);
+
+        $provider->provideToolScope();
     }
 
     /**
-     * @return array<string, array{0: array<string, mixed>|null, 1: list<string>|null}>
+     * @param array<string, mixed> $tokenAttributes
      */
-    public static function scopeDataProvider(): array
+    private function createProvider(array $tokenAttributes): PersonalAccessTokenToolScopeProvider
     {
-        return [
-            'no security token' => [null, null],
-            'token of another authenticator' => [[], null],
-            'personal access token without narrowing' => [[PersonalAccessTokenAuthenticator::TOOLS_ATTRIBUTE => null], null],
-            'personal access token with narrowing' => [[PersonalAccessTokenAuthenticator::TOOLS_ATTRIBUTE => [self::TOOL]], [self::TOOL]],
-        ];
+        $token = new PostAuthenticationToken(
+            user: $this->createStub(AnzuUser::class),
+            firewallName: self::FIREWALL_NAME,
+            roles: [],
+        );
+        $token->setAttributes($tokenAttributes);
+        $tokenStorage = new TokenStorage();
+        $tokenStorage->setToken($token);
+
+        return new PersonalAccessTokenToolScopeProvider($tokenStorage);
     }
 }

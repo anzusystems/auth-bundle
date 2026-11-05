@@ -17,9 +17,22 @@ final readonly class PersonalAccessTokenToolResolver
     /**
      * @return list<string>
      */
-    public function resolveToolNames(): array
+    public function resolveReadToolNames(): array
     {
-        return $this->toolAccessChecker?->getToolNames() ?? [];
+        $toolAccessChecker = $this->toolAccessChecker;
+        if (null === $toolAccessChecker) {
+            return [];
+        }
+
+        return array_values(array_diff($toolAccessChecker->getToolNames(), $toolAccessChecker->getWriteToolNames()));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function resolveWriteToolNames(): array
+    {
+        return $this->toolAccessChecker?->getWriteToolNames() ?? [];
     }
 
     /**

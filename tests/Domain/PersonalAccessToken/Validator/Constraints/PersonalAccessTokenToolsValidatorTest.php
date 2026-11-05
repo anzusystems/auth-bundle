@@ -9,42 +9,38 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\Pers
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenToolsValidator;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolAccessChecker;
-use AnzuSystems\Contracts\Entity\AnzuUser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\SecurityBundle\Security;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
-use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
 use Symfony\Component\Validator\ConstraintValidatorFactory;
 use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\Validation;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class PersonalAccessTokenToolsValidatorTest extends TestCase
 {
-    private const string FIREWALL_NAME = 'api';
     private const string READ_TOOL = 'list_published_articles';
     private const string WRITE_TOOL = 'create_quiz';
     private const string PREVIEW_TOOL = 'preview_quiz';
-    private const string NOT_PERMITTED_TOOL = 'update_robots_txt';
     private const string UNKNOWN_TOOL = 'delete_article';
-    private const string READ_PERMISSION = 'cms_article_read';
-    private const string WRITE_PERMISSION = 'cms_quiz_create';
-    private const string NOT_PERMITTED_PERMISSION = 'cms_robotsTxt_update';
+    private const string PERMISSION = 'cms_article_read';
 
     /**
      * @param list<string>|null $tools
      * @param list<string> $expectedMessages
      */
     #[DataProvider('toolsDataProvider')]
-    public function testOnlyToolsTheCreatorMayUseAreValid(
+    public function testOnlyConfiguredToolsOfTheRightKindAreValid(
         bool $mcpEnabled,
-        bool $authenticated,
+        bool $writeTools,
         ?array $tools,
         array $expectedMessages,
     ): void {
-        $violations = $this->createValidator(mcpEnabled: $mcpEnabled, authenticated: $authenticated)
-            ->validate($tools, new PersonalAccessTokenTools());
+        $violations = Validation::createValidatorBuilder()
+            ->setConstraintValidatorFactory(new ConstraintValidatorFactory([
+                PersonalAccessTokenToolsValidator::class => new PersonalAccessTokenToolsValidator($this->createResolver($mcpEnabled)),
+            ]))
+            ->getValidator()
+            ->validate($tools, new PersonalAccessTokenTools(writeTools: $writeTools));
 
         self::assertSame(
             $expectedMessages,
@@ -60,54 +56,38 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
      */
     public static function toolsDataProvider(): array
     {
+        $invalid = [ValidationException::ERROR_FIELD_INVALID];
+
         return [
-            'no narrowing' => [true, true, null, []],
-            'permitted read and write tools' => [true, true, [self::READ_TOOL, self::WRITE_TOOL], []],
-            'tool without permission' => [true, true, [self::READ_TOOL, self::NOT_PERMITTED_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
-            'unknown tool' => [true, true, [self::UNKNOWN_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
-            'preview of a permitted write tool' => [true, true, [self::WRITE_TOOL, self::PREVIEW_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
-            'no narrowing without mcp' => [false, true, null, []],
-            'tool without mcp' => [false, true, [self::READ_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
-            'console: configured tool without permission' => [true, false, [self::READ_TOOL, self::NOT_PERMITTED_TOOL], []],
-            'console: unknown tool' => [true, false, [self::READ_TOOL, self::UNKNOWN_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
-            'console: preview tool' => [true, false, [self::WRITE_TOOL, self::PREVIEW_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
-            'console: tool without mcp' => [false, false, [self::READ_TOOL], [ValidationException::ERROR_FIELD_INVALID]],
+            'all read tools' => [true, false, null, []],
+            'no read tool' => [true, false, [], []],
+            'read tool' => [true, false, [self::READ_TOOL], []],
+            'write tool among the read tools' => [true, false, [self::WRITE_TOOL], $invalid],
+            'preview among the read tools' => [true, false, [self::PREVIEW_TOOL], $invalid],
+            'unknown read tool' => [true, false, [self::UNKNOWN_TOOL], $invalid],
+            'read tool without mcp' => [false, false, [self::READ_TOOL], $invalid],
+            'no write tool' => [true, true, [], []],
+            'write tool' => [true, true, [self::WRITE_TOOL], []],
+            'read tool among the write tools' => [true, true, [self::READ_TOOL], $invalid],
+            'unknown write tool' => [true, true, [self::UNKNOWN_TOOL], $invalid],
+            'write tool without mcp' => [false, true, [self::WRITE_TOOL], $invalid],
         ];
     }
 
-    private function createValidator(bool $mcpEnabled, bool $authenticated): ValidatorInterface
+    private function createResolver(bool $mcpEnabled): PersonalAccessTokenToolResolver
     {
-        $security = $this->createStub(Security::class);
-        $security->method('isGranted')
-            ->willReturnCallback(
-                static fn (mixed $attribute): bool => in_array(needle: $attribute, haystack: [self::READ_PERMISSION, self::WRITE_PERMISSION], strict: true),
-            );
-        $toolAccessChecker = new McpToolAccessChecker(
-            toolPermissions: [
-                self::READ_TOOL => self::READ_PERMISSION,
-                self::WRITE_TOOL => self::WRITE_PERMISSION,
-                self::NOT_PERMITTED_TOOL => self::NOT_PERMITTED_PERMISSION,
-            ],
-            security: $security,
-            readOnlyToolNames: [self::READ_TOOL, self::PREVIEW_TOOL],
-            writeToolNamesByPreview: [self::PREVIEW_TOOL => self::WRITE_TOOL],
-        );
-        $toolResolver = $mcpEnabled
-            ? new PersonalAccessTokenToolResolver($toolAccessChecker)
-            : new PersonalAccessTokenToolResolver();
-        $tokenStorage = new TokenStorage();
-        if ($authenticated) {
-            $tokenStorage->setToken(new PostAuthenticationToken(
-                user: $this->createStub(AnzuUser::class),
-                firewallName: self::FIREWALL_NAME,
-                roles: [],
-            ));
+        if (false === $mcpEnabled) {
+            return new PersonalAccessTokenToolResolver();
         }
 
-        return Validation::createValidatorBuilder()
-            ->setConstraintValidatorFactory(new ConstraintValidatorFactory([
-                PersonalAccessTokenToolsValidator::class => new PersonalAccessTokenToolsValidator($toolResolver, $tokenStorage),
-            ]))
-            ->getValidator();
+        return new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
+            toolPermissions: [
+                self::READ_TOOL => self::PERMISSION,
+                self::WRITE_TOOL => self::PERMISSION,
+            ],
+            security: $this->createStub(Security::class),
+            readOnlyToolNames: [self::READ_TOOL, self::PREVIEW_TOOL],
+            writeToolNamesByPreview: [self::PREVIEW_TOOL => self::WRITE_TOOL],
+        ));
     }
 }

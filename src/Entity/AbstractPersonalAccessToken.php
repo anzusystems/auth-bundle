@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Entity;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenTools;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteTools;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsWithinTools;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -25,7 +23,6 @@ use LogicException;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\MappedSuperclass]
-#[PersonalAccessTokenWriteToolsWithinTools]
 abstract class AbstractPersonalAccessToken implements IdentifiableInterface, TimeTrackingInterface, UserTrackingInterface
 {
     use IdentityIntTrait;
@@ -36,8 +33,6 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public const int TOKEN_HASH_LENGTH = 64;
     public const string DEFAULT_EXPIRES_AT_DATE = '+2 months';
     public const string MAX_EXPIRES_AT_DATE = '+1 year';
-
-    private const int TOOLS_MIN_COUNT = 1;
 
     #[ORM\ManyToOne(targetEntity: AnzuUser::class)]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -52,15 +47,17 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[Assert\Length(max: 255, maxMessage: ValidationException::ERROR_FIELD_LENGTH_MAX)]
     protected string $name = '';
 
-    #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH)]
+    #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH, unique: true)]
     protected string $tokenHash = '';
 
     /**
+     * Nullable so that the previous release can still create tokens during a deploy or after a rollback.
+     *
      * @var list<string>|null
      */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
-    #[PersonalAccessTokenWriteTools]
+    #[PersonalAccessTokenTools(writeTools: true)]
     protected ?array $writeTools = null;
 
     /**
@@ -68,10 +65,9 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
      */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     #[Serialize]
-    #[Assert\Count(min: self::TOOLS_MIN_COUNT, minMessage: ValidationException::ERROR_FIELD_LENGTH_MIN)]
     #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
     #[PersonalAccessTokenTools]
-    protected ?array $tools = null;
+    protected ?array $readTools = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -165,17 +161,17 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     /**
      * @return list<string>|null
      */
-    public function getTools(): ?array
+    public function getReadTools(): ?array
     {
-        return $this->tools;
+        return $this->readTools;
     }
 
     /**
-     * @param array<string>|null $tools
+     * @param array<string>|null $readTools
      */
-    public function setTools(?array $tools): static
+    public function setReadTools(?array $readTools): static
     {
-        $this->tools = is_array($tools) ? array_values($tools) : null;
+        $this->readTools = is_array($readTools) ? array_values($readTools) : null;
 
         return $this;
     }

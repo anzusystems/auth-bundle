@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Security;
 
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
+use AnzuSystems\CommonBundle\Mcp\Security\McpToolScope;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolScopeProviderInterface;
+use LogicException;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 final readonly class PersonalAccessTokenToolScopeProvider implements McpToolScopeProviderInterface
@@ -15,17 +17,23 @@ final readonly class PersonalAccessTokenToolScopeProvider implements McpToolScop
     ) {
     }
 
-    public function provideAllowedToolNames(): ?array
+    public function provideToolScope(): ?McpToolScope
     {
         $token = $this->tokenStorage->getToken();
-        if (null === $token || false === $token->hasAttribute(PersonalAccessTokenAuthenticator::TOOLS_ATTRIBUTE)) {
-            return null;
-        }
-        $tools = $token->getAttribute(PersonalAccessTokenAuthenticator::TOOLS_ATTRIBUTE);
-        if (false === is_array($tools)) {
+        if (null === $token || false === $token->hasAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE)) {
             return null;
         }
 
-        return array_values(array_filter($tools, is_string(...)));
+        $toolScope = $token->getAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE);
+        if ($toolScope instanceof McpToolScope) {
+            return $toolScope;
+        }
+
+        throw new LogicException(sprintf(
+            'The token attribute "%s" must be a %s, "%s" given.',
+            PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE,
+            McpToolScope::class,
+            get_debug_type($toolScope),
+        ));
     }
 }

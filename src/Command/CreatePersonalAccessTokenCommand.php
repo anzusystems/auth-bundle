@@ -33,10 +33,10 @@ final class CreatePersonalAccessTokenCommand extends Command
     private const string OPTION_EXPIRES_AT = 'expires-at';
     private const string OPTION_NEVER_EXPIRES = 'never-expires';
     private const string OPTION_WRITE_TOOL = 'write-tool';
-    private const string OPTION_TOOL = 'tool';
+    private const string OPTION_READ_TOOL = 'read-tool';
     private const string LIST_SEPARATOR = ', ';
     private const string WRITE_TOOLS_NONE = 'none, the token is read only';
-    private const string TOOLS_UNRESTRICTED = 'all the user may use';
+    private const string READ_TOOLS_UNRESTRICTED = 'all the user may use';
     private const string EXPIRES_AT_NEVER = 'never';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
@@ -71,9 +71,9 @@ final class CreatePersonalAccessTokenCommand extends Command
                 description: 'Name of an MCP write tool the token may call, repeat the option to grant more tools. Without it the token is read only.',
             )
             ->addOption(
-                name: self::OPTION_TOOL,
+                name: self::OPTION_READ_TOOL,
                 mode: InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY,
-                description: 'Name of an MCP tool the token may use, repeat the option to allow more tools. Without it the token may use every tool of its user.',
+                description: 'Name of an MCP read tool the token may use, repeat the option to allow more tools. Without it the token keeps every read tool its user may use.',
             )
         ;
     }
@@ -125,7 +125,7 @@ final class CreatePersonalAccessTokenCommand extends Command
         }
 
         $writeTools = array_map(strval(...), (array) $input->getOption(self::OPTION_WRITE_TOOL));
-        $tools = array_map(strval(...), (array) $input->getOption(self::OPTION_TOOL));
+        $readTools = array_map(strval(...), (array) $input->getOption(self::OPTION_READ_TOOL));
 
         try {
             $result = $this->personalAccessTokenFacade->create(
@@ -134,7 +134,7 @@ final class CreatePersonalAccessTokenCommand extends Command
                 expiresAt: $expiresAt,
                 neverExpires: $neverExpires,
                 writeTools: $writeTools,
-                tools: empty($tools) ? null : $tools,
+                readTools: empty($readTools) ? null : $readTools,
             );
         } catch (ValidationException $exception) {
             $output->writeln(sprintf(
@@ -155,8 +155,8 @@ final class CreatePersonalAccessTokenCommand extends Command
             $this->formatWriteTools($result->personalAccessToken->getWriteTools()),
         ));
         $output->writeln(sprintf(
-            'Tools: %s',
-            $this->formatTools($result->personalAccessToken->getTools()),
+            'Read tools: %s',
+            $this->formatReadTools($result->personalAccessToken->getReadTools()),
         ));
 
         return self::SUCCESS;
@@ -185,14 +185,14 @@ final class CreatePersonalAccessTokenCommand extends Command
     }
 
     /**
-     * @param list<string>|null $tools
+     * @param list<string>|null $readTools
      */
-    private function formatTools(?array $tools): string
+    private function formatReadTools(?array $readTools): string
     {
-        if (null === $tools) {
-            return self::TOOLS_UNRESTRICTED;
+        if (null === $readTools) {
+            return self::READ_TOOLS_UNRESTRICTED;
         }
 
-        return implode(self::LIST_SEPARATOR, $tools);
+        return implode(self::LIST_SEPARATOR, $readTools);
     }
 }

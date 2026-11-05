@@ -6,10 +6,18 @@ namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraint
 
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use Attribute;
+use Symfony\Component\Validator\Attribute\HasNamedArguments;
 use Symfony\Component\Validator\Constraint;
 
 #[Attribute(Attribute::TARGET_PROPERTY)]
 final class PersonalAccessTokenTools extends Constraint
 {
     public string $message = ValidationException::ERROR_FIELD_INVALID;
+
+    #[HasNamedArguments]
+    public function __construct(
+        public readonly bool $writeTools = false,
+    ) {
+        parent::__construct();
+    }
 }

@@ -14,16 +14,12 @@ use AnzuSystems\AuthBundle\Contracts\RefreshTokenStorageInterface;
 use AnzuSystems\AuthBundle\Controller\Api\JsonCredentialsAuthController;
 use AnzuSystems\AuthBundle\Controller\Api\OAuth2AuthController;
 use AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\NoopPersonalAccessTokenExpiryNotifier;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenWriteToolResolver;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenToolsValidator;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsValidator;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenWriteToolsWithinToolsValidator;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\ValidateOAuth2AccessTokenProcess;
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
@@ -31,7 +27,6 @@ use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\RefreshTokenStorage\RedisRefreshTokenStorage;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenToolScopeProvider;
-use AnzuSystems\AuthBundle\Security\Voter\McpToolWriteVoter;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Serializer\Handler\Handlers\JwtHandler;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
@@ -212,26 +207,9 @@ final class AnzuSystemsAuthExtension extends Extension
         ;
 
         $container
-            ->register(PersonalAccessTokenAuthCache::class)
-            ->setAutowired(true)
-            ->setArgument('$patAuthCache', new Reference($config['auth_cache_pool']))
-        ;
-
-        $container
             ->register(PersonalAccessTokenFacade::class)
             ->setAutowired(true)
             ->setArgument('$entityClass', $entityClass)
-        ;
-
-        $container
-            ->register(PersonalAccessTokenWriteToolResolver::class)
-            ->setAutowired(true)
-        ;
-
-        $container
-            ->register(PersonalAccessTokenWriteToolsValidator::class)
-            ->setAutowired(true)
-            ->setAutoconfigured(true)
         ;
 
         $container
@@ -246,11 +224,6 @@ final class AnzuSystemsAuthExtension extends Extension
         ;
 
         $container
-            ->register(PersonalAccessTokenWriteToolsWithinToolsValidator::class)
-            ->setAutoconfigured(true)
-        ;
-
-        $container
             ->register(NoopPersonalAccessTokenExpiryNotifier::class)
         ;
         $container->setAlias(PersonalAccessTokenExpiryNotifierInterface::class, NoopPersonalAccessTokenExpiryNotifier::class);
@@ -258,7 +231,6 @@ final class AnzuSystemsAuthExtension extends Extension
         $container
             ->register(PersonalAccessTokenAuthenticator::class)
             ->setAutowired(true)
-            ->setArgument('$userEntityClass', $config['user_entity_class'])
         ;
 
         $container
@@ -269,24 +241,16 @@ final class AnzuSystemsAuthExtension extends Extension
         ;
 
         $container
-            ->register(McpToolWriteVoter::class)
+            ->register(PersonalAccessTokenToolScopeProvider::class)
             ->setAutowired(true)
-            ->setAutoconfigured(true)
         ;
-
-        if (interface_exists(McpToolScopeProviderInterface::class)) {
-            $container
-                ->register(PersonalAccessTokenToolScopeProvider::class)
-                ->setAutowired(true)
-            ;
-            $container->setAlias(McpToolScopeProviderInterface::class, PersonalAccessTokenToolScopeProvider::class);
-        }
+        $container->setAlias(McpToolScopeProviderInterface::class, PersonalAccessTokenToolScopeProvider::class);
 
         $container
             ->register(CreatePersonalAccessTokenCommand::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
-            ->setArgument('$userEntityClass', $config['user_entity_class'])
+            ->setArgument('$userEntityClass', '%anzu_systems_common.user_entity_class%')
         ;
 
         $container

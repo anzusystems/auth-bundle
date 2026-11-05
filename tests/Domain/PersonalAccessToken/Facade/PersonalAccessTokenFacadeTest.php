@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Tests\Domain\PersonalAccessToken\Facade;
 
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
+use AnzuSystems\CommonBundle\Mcp\Security\McpToolAccessChecker;
 use AnzuSystems\CommonBundle\Validator\Validator;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -20,19 +20,22 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\Persistence\ManagerRegistry;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Validator\ConstraintViolationList;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 final class PersonalAccessTokenFacadeTest extends TestCase
 {
     private const int USER_ID = 42;
-    private const int PERSONAL_ACCESS_TOKEN_ID = 7;
     private const string WRITE_TOOL = 'create_quiz';
     private const string READ_TOOL = 'list_published_articles';
+    private const string NOT_PERMITTED_READ_TOOL = 'search_app_logs';
+    private const string NOT_PERMITTED_WRITE_TOOL = 'update_robots_txt';
+    private const string GRANTED_PERMISSION = 'cms_granted';
+    private const string DENIED_PERMISSION = 'cms_denied';
 
-    private PersonalAccessTokenAuthCache $authCache;
     private PersonalAccessTokenFacade $facade;
     private ?object $persistedEntity = null;
 
@@ -75,12 +78,24 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $registry->method('getManagerForClass')
             ->willReturn($repositoryEntityManager);
 
-        $this->authCache = new PersonalAccessTokenAuthCache(new ArrayAdapter());
+        $security = $this->createStub(Security::class);
+        $security->method('isGranted')
+            ->willReturnCallback(static fn (mixed $attribute): bool => self::GRANTED_PERMISSION === $attribute);
+
         $this->facade = new PersonalAccessTokenFacade(
             new Validator($innerValidator),
             $manager,
             new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
-            $this->authCache,
+            new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
+                toolPermissions: [
+                    self::READ_TOOL => self::GRANTED_PERMISSION,
+                    self::WRITE_TOOL => self::GRANTED_PERMISSION,
+                    self::NOT_PERMITTED_READ_TOOL => self::DENIED_PERMISSION,
+                    self::NOT_PERMITTED_WRITE_TOOL => self::DENIED_PERMISSION,
+                ],
+                security: $security,
+                readOnlyToolNames: [self::READ_TOOL, self::NOT_PERMITTED_READ_TOOL],
+            )),
             PersonalAccessToken::class,
         );
         $this->persistedEntity = null;
@@ -115,23 +130,72 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         self::assertSame([self::WRITE_TOOL], $result->personalAccessToken->getWriteTools());
     }
 
-    public function testCreateStoresRequestedTools(): void
+    public function testCreateStoresRequestedReadTools(): void
     {
         $result = $this->facade->create(
             user: $this->createConfiguredStub(AnzuUser::class, []),
             name: 'test-token',
-            writeTools: [self::WRITE_TOOL],
-            tools: [self::READ_TOOL, self::WRITE_TOOL],
+            readTools: [self::READ_TOOL],
         );
 
-        self::assertSame([self::READ_TOOL, self::WRITE_TOOL], $result->personalAccessToken->getTools());
+        self::assertSame([self::READ_TOOL], $result->personalAccessToken->getReadTools());
     }
 
-    public function testCreateWithoutToolsDoesNotNarrowTheToken(): void
+    public function testCreateWithoutReadToolsDoesNotNarrowTheToken(): void
     {
         $result = $this->facade->create($this->createConfiguredStub(AnzuUser::class, []), 'test-token');
 
-        self::assertNull($result->personalAccessToken->getTools());
+        self::assertNull($result->personalAccessToken->getReadTools());
+    }
+
+    public function testCreateGrantedStoresToolsTheUserMayUse(): void
+    {
+        $result = $this->facade->createGranted(
+            user: $this->createConfiguredStub(AnzuUser::class, []),
+            name: 'test-token',
+            writeTools: [self::WRITE_TOOL],
+            readTools: [self::READ_TOOL],
+        );
+
+        self::assertSame([self::WRITE_TOOL], $result->personalAccessToken->getWriteTools());
+        self::assertSame([self::READ_TOOL], $result->personalAccessToken->getReadTools());
+    }
+
+    /**
+     * @param list<string> $writeTools
+     * @param list<string>|null $readTools
+     * @param list<string> $expectedFields
+     */
+    #[DataProvider('ungrantableToolsDataProvider')]
+    public function testCreateGrantedRefusesToolsTheUserMayNotUse(
+        array $writeTools,
+        ?array $readTools,
+        array $expectedFields,
+    ): void {
+        try {
+            $this->facade->createGranted(
+                user: $this->createConfiguredStub(AnzuUser::class, []),
+                name: 'test-token',
+                writeTools: $writeTools,
+                readTools: $readTools,
+            );
+            self::fail('Expected ' . ValidationException::class);
+        } catch (ValidationException $exception) {
+            self::assertSame($expectedFields, array_keys($exception->getFormattedErrors()));
+        }
+        self::assertNull($this->persistedEntity);
+    }
+
+    /**
+     * @return array<string, array{0: list<string>, 1: list<string>|null, 2: list<string>}>
+     */
+    public static function ungrantableToolsDataProvider(): array
+    {
+        return [
+            'write tool without permission' => [[self::NOT_PERMITTED_WRITE_TOOL], null, ['writeTools']],
+            'read tool without permission' => [[], [self::NOT_PERMITTED_READ_TOOL], ['readTools']],
+            'unknown tools in both lists' => [['unknown'], ['unknown'], ['readTools', 'writeTools']],
+        ];
     }
 
     public function testCreateRespectsExplicitExpiresAt(): void
@@ -164,28 +228,6 @@ final class PersonalAccessTokenFacadeTest extends TestCase
             new DateTimeImmutable('+3 days'),
             neverExpires: true,
         );
-    }
-
-    public function testRevokeSetsRevokedAtAndInvalidatesCache(): void
-    {
-        $result = $this->facade->create($this->createConfiguredStub(AnzuUser::class, []), 'test-token');
-        $tokenHash = $result->personalAccessToken->getTokenHash();
-        $version = $this->authCache->getInvalidationVersion($tokenHash);
-        $this->authCache->storeToken(
-            tokenHash: $tokenHash,
-            version: $version,
-            token: new CachedPersonalAccessToken(
-                personalAccessTokenId: self::PERSONAL_ACCESS_TOKEN_ID,
-                userId: self::USER_ID,
-                writeTools: [],
-            ),
-            expiresAt: AnzuApp::date('+1 hour'),
-        );
-
-        $revoked = $this->facade->revoke($result->personalAccessToken);
-
-        self::assertTrue($revoked->isRevoked());
-        self::assertNull($this->authCache->getToken($tokenHash, $this->authCache->getInvalidationVersion($tokenHash)));
     }
 
     public function testRevokeIsIdempotent(): void

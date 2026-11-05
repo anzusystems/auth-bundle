@@ -10,7 +10,6 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenC
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenTool;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenWriteToolResolver;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission;
 use AnzuSystems\CommonBundle\Controller\AbstractAnzuApiController;
@@ -39,12 +38,9 @@ use Symfony\Component\Routing\Requirement\Requirement;
 #[OA\Tag('PersonalAccessToken')]
 final class PersonalAccessTokenController extends AbstractAnzuApiController
 {
-    private const string WRITE_TOOLS_NOT_GRANTABLE_MESSAGE = 'A token can grant only the write tools whose tool permission you hold.';
-
     public function __construct(
         private readonly PersonalAccessTokenFacade $personalAccessTokenFacade,
         private readonly PersonalAccessTokenRepository $personalAccessTokenRepo,
-        private readonly PersonalAccessTokenWriteToolResolver $writeToolResolver,
         private readonly PersonalAccessTokenToolResolver $toolResolver,
         private readonly LoggerInterface $logger,
     ) {
@@ -58,17 +54,6 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
 
         return $this->okResponse(
             $this->personalAccessTokenRepo->findByUser($this->getUser())
-        );
-    }
-
-    #[Route('/write-tools', name: 'get_write_tools', methods: [Request::METHOD_GET])]
-    #[OA\Response(response: JsonResponse::HTTP_OK, description: 'Names of the MCP write tools the current user may grant to a token', content: new OA\JsonContent(type: 'array', items: new OA\Items(type: 'string'))), OAResponseUnauthorized, OAResponseForbidden]
-    public function getWriteTools(): JsonResponse
-    {
-        $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
-
-        return $this->okResponse(
-            $this->writeToolResolver->resolveGrantableWriteTools()
         );
     }
 
@@ -95,16 +80,13 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
         if (false === empty($dto->getWriteTools())) {
             $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
         }
-        if ($this->hasUngrantableWriteTool($dto->getWriteTools())) {
-            throw $this->createAccessDeniedException(self::WRITE_TOOLS_NOT_GRANTABLE_MESSAGE);
-        }
         AuditLogResourceHelper::excludeFromAuditLogs($request);
-        $result = $this->personalAccessTokenFacade->create(
+        $result = $this->personalAccessTokenFacade->createGranted(
             user: $this->getUser(),
             name: $dto->getName(),
             expiresAt: $dto->getExpiresAt(),
             writeTools: $dto->getWriteTools(),
-            tools: $dto->getTools(),
+            readTools: $dto->getReadTools(),
         );
         $this->logger->info('Personal access token created.', [
             'resource' => $result->personalAccessToken::getResourceName(),
@@ -112,7 +94,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
             'userId' => $this->getUser()
                 ->getId(),
             'writeTools' => $result->personalAccessToken->getWriteTools(),
-            'tools' => $result->personalAccessToken->getTools(),
+            'readTools' => $result->personalAccessToken->getReadTools(),
         ]);
 
         return $this->createdResponse($result);
@@ -135,19 +117,6 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
 
         return $this->okResponse(
             $this->personalAccessTokenFacade->revoke($personalAccessToken)
-        );
-    }
-
-    /**
-     * @param array<mixed> $writeTools
-     */
-    private function hasUngrantableWriteTool(array $writeTools): bool
-    {
-        $grantableWriteTools = $this->writeToolResolver->resolveGrantableWriteTools();
-
-        return array_any(
-            $writeTools,
-            static fn (mixed $writeTool): bool => false === in_array(needle: $writeTool, haystack: $grantableWriteTools, strict: true),
         );
     }
 }

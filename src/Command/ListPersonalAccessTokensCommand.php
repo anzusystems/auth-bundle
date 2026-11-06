@@ -26,6 +26,7 @@ final class ListPersonalAccessTokensCommand extends Command
     private const string STATUS_EXPIRED = 'expired';
     private const string STATUS_REVOKED = 'revoked';
     private const string READ_TOOLS_ALL = 'all';
+    private const string TOOLS_NONE = 'none';
     private const string NO_VALUE = '-';
     private const string LIST_SEPARATOR = ', ';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
@@ -61,7 +62,7 @@ final class ListPersonalAccessTokensCommand extends Command
                 $this->formatDate($token->getExpiresAt()),
                 $this->formatDate($token->getLastUsedAt()),
                 $this->formatReadTools($token->getReadTools()),
-                implode(self::LIST_SEPARATOR, $token->getWriteTools()),
+                $this->formatTools($token->getWriteTools()),
             ]
         )->toArray());
 
@@ -95,6 +96,18 @@ final class ListPersonalAccessTokensCommand extends Command
             return self::READ_TOOLS_ALL;
         }
 
-        return implode(self::LIST_SEPARATOR, $readTools);
+        return $this->formatTools($readTools);
+    }
+
+    /**
+     * @param list<string> $tools
+     */
+    private function formatTools(array $tools): string
+    {
+        if (empty($tools)) {
+            return self::TOOLS_NONE;
+        }
+
+        return implode(self::LIST_SEPARATOR, $tools);
     }
 }

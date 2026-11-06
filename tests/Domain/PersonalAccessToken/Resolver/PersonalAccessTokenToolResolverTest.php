@@ -31,7 +31,7 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
      * @param list<PersonalAccessTokenTool> $expectedTools
      */
     #[DataProvider('grantableToolsDataProvider')]
-    public function testGrantableToolsCarryTheirCategoryInToolPermissionsOrderWithoutPreviews(
+    public function testGrantableToolsCarryTheirCategoryInToolDefinitionsOrderWithoutPreviews(
         bool $mcpEnabled,
         array $expectedTools,
     ): void {

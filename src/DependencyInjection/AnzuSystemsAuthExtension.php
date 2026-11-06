@@ -33,6 +33,7 @@ use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Serializer\Handler\Handlers\JwtHandler;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
 use AnzuSystems\AuthBundle\Util\StatelessTokenUtil;
+use AnzuSystems\CommonBundle\DependencyInjection\AnzuSystemsCommonExtension;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolScopeProviderInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
@@ -252,14 +253,14 @@ final class AnzuSystemsAuthExtension extends Extension
             ->register(CreatePersonalAccessTokenCommand::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
-            ->setArgument('$userEntityClass', '%anzu_systems_common.user_entity_class%')
+            ->setArgument('$userEntityClass', '%' . AnzuSystemsCommonExtension::USER_ENTITY_CLASS_PARAM . '%')
         ;
 
         $container
             ->register(ListPersonalAccessTokensCommand::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
-            ->setArgument('$userEntityClass', '%anzu_systems_common.user_entity_class%')
+            ->setArgument('$userEntityClass', '%' . AnzuSystemsCommonExtension::USER_ENTITY_CLASS_PARAM . '%')
         ;
 
         $container

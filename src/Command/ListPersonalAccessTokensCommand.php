@@ -22,9 +22,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class ListPersonalAccessTokensCommand extends Command
 {
     private const array HEADERS = ['Id', 'Name', 'Status', 'Expires at', 'Last used at', 'Read tools', 'Write tools'];
-    private const string STATUS_ACTIVE = 'active';
-    private const string STATUS_EXPIRED = 'expired';
-    private const string STATUS_REVOKED = 'revoked';
+    public const string STATUS_ACTIVE = 'active';
+    public const string STATUS_EXPIRED = 'expired';
+    public const string STATUS_REVOKED = 'revoked';
     private const string READ_TOOLS_ALL = 'all';
     private const string TOOLS_NONE = 'none';
     private const string NO_VALUE = '-';

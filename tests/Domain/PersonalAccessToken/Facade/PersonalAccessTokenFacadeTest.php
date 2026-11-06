@@ -91,14 +91,14 @@ final class PersonalAccessTokenFacadeTest extends TestCase
             self::NOT_PERMITTED_WRITE_TOOL => new McpToolDefinition(permission: self::DENIED_PERMISSION),
         ]);
         $this->facade = new PersonalAccessTokenFacade(
-            new Validator($innerValidator),
-            $manager,
-            new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
-            new PersonalAccessTokenToolResolver(
+            validator: new Validator($innerValidator),
+            manager: $manager,
+            repository: new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
+            toolResolver: new PersonalAccessTokenToolResolver(
                 toolAccessChecker: new McpToolAccessChecker(toolDefinitions: $toolDefinitions, security: $security),
                 toolDefinitions: $toolDefinitions,
             ),
-            PersonalAccessToken::class,
+            entityClass: PersonalAccessToken::class,
         );
         $this->persistedEntity = null;
     }

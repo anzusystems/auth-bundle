@@ -35,8 +35,8 @@ final readonly class PersonalAccessTokenFacade
     }
 
     /**
-     * Creates a token for a user acting on their own, so it can hold only the tools the user may use. The console trusts
-     * its operator and calls create() directly.
+     * The tools are checked against the permissions of the logged-in user, not of $user: call it only for a user
+     * creating their own token. create() checks only that each name is a known read or write tool.
      *
      * @param array<string> $writeTools
      * @param array<string>|null $readTools

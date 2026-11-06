@@ -76,7 +76,7 @@ final class PersonalAccessTokenVoterTest extends TestCase
         $user = $this->createUser(permissions: [
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_REVOKE => Grant::ALLOW,
         ]);
-        $foreignOwner = $this->createConfiguredMock(AnzuUser::class, ['is' => false]);
+        $foreignOwner = $this->createConfiguredStub(AnzuUser::class, ['is' => false]);
         $subject = new PersonalAccessToken()
             ->setUser($foreignOwner);
 
@@ -93,7 +93,7 @@ final class PersonalAccessTokenVoterTest extends TestCase
         $user = $this->createUser(permissions: [
             PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_REVOKE => Grant::ALLOW_OWNER,
         ]);
-        $owner = $this->createConfiguredMock(AnzuUser::class, ['is' => true]);
+        $owner = $this->createConfiguredStub(AnzuUser::class, ['is' => true]);
         $subject = new PersonalAccessToken()
             ->setUser($owner);
 
@@ -139,7 +139,7 @@ final class PersonalAccessTokenVoterTest extends TestCase
      */
     private function createVoter(array $isGrantedMap): PersonalAccessTokenVoter
     {
-        $security = $this->createMock(Security::class);
+        $security = $this->createStub(Security::class);
         $security->method('isGranted')
             ->willReturnMap($isGrantedMap);
         $voter = new PersonalAccessTokenVoter();
@@ -153,12 +153,12 @@ final class PersonalAccessTokenVoterTest extends TestCase
      */
     private function createUser(array $permissions): AnzuUser
     {
-        return $this->createConfiguredMock(AnzuUser::class, ['getResolvedPermissions' => $permissions]);
+        return $this->createConfiguredStub(AnzuUser::class, ['getResolvedPermissions' => $permissions]);
     }
 
     private function createToken(AnzuUser $user): TokenInterface
     {
-        $token = $this->createMock(TokenInterface::class);
+        $token = $this->createStub(TokenInterface::class);
         $token->method('getUser')
             ->willReturn($user);
 

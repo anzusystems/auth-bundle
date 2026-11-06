@@ -84,19 +84,20 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $security->method('isGranted')
             ->willReturnCallback(static fn (mixed $attribute): bool => self::GRANTED_PERMISSION === $attribute);
 
+        $toolDefinitions = new McpToolDefinitions([
+            self::READ_TOOL => new McpToolDefinition(permission: self::GRANTED_PERMISSION, readOnly: true),
+            self::WRITE_TOOL => new McpToolDefinition(permission: self::GRANTED_PERMISSION),
+            self::NOT_PERMITTED_READ_TOOL => new McpToolDefinition(permission: self::DENIED_PERMISSION, readOnly: true),
+            self::NOT_PERMITTED_WRITE_TOOL => new McpToolDefinition(permission: self::DENIED_PERMISSION),
+        ]);
         $this->facade = new PersonalAccessTokenFacade(
             new Validator($innerValidator),
             $manager,
             new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
-            new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
-                toolDefinitions: new McpToolDefinitions([
-                    self::READ_TOOL => new McpToolDefinition(permission: self::GRANTED_PERMISSION, readOnly: true),
-                    self::WRITE_TOOL => new McpToolDefinition(permission: self::GRANTED_PERMISSION),
-                    self::NOT_PERMITTED_READ_TOOL => new McpToolDefinition(permission: self::DENIED_PERMISSION, readOnly: true),
-                    self::NOT_PERMITTED_WRITE_TOOL => new McpToolDefinition(permission: self::DENIED_PERMISSION),
-                ]),
-                security: $security,
-            )),
+            new PersonalAccessTokenToolResolver(
+                toolAccessChecker: new McpToolAccessChecker(toolDefinitions: $toolDefinitions, security: $security),
+                toolDefinitions: $toolDefinitions,
+            ),
             PersonalAccessToken::class,
         );
         $this->persistedEntity = null;

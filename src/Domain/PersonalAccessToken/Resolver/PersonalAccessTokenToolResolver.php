@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenTool;
+use AnzuSystems\CommonBundle\Mcp\McpToolDefinitions;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolAccessChecker;
 
 final readonly class PersonalAccessTokenToolResolver
 {
     public function __construct(
         private ?McpToolAccessChecker $toolAccessChecker = null,
+        private ?McpToolDefinitions $toolDefinitions = null,
     ) {
     }
 
@@ -19,12 +21,12 @@ final readonly class PersonalAccessTokenToolResolver
      */
     public function resolveReadToolNames(): array
     {
-        $toolAccessChecker = $this->toolAccessChecker;
-        if (null === $toolAccessChecker) {
+        $toolDefinitions = $this->toolDefinitions;
+        if (null === $toolDefinitions) {
             return [];
         }
 
-        return array_diff($toolAccessChecker->getToolNames(), $toolAccessChecker->getWriteToolNames()) |> array_values(...);
+        return array_diff($toolDefinitions->getToolNames(), $toolDefinitions->getWriteToolNames()) |> array_values(...);
     }
 
     /**
@@ -32,7 +34,7 @@ final readonly class PersonalAccessTokenToolResolver
      */
     public function resolveWriteToolNames(): array
     {
-        return $this->toolAccessChecker?->getWriteToolNames() ?? [];
+        return $this->toolDefinitions?->getWriteToolNames() ?? [];
     }
 
     /**
@@ -49,20 +51,21 @@ final readonly class PersonalAccessTokenToolResolver
     public function resolveGrantableTools(bool $withWriteTools): array
     {
         $toolAccessChecker = $this->toolAccessChecker;
-        if (null === $toolAccessChecker) {
+        $toolDefinitions = $this->toolDefinitions;
+        if (null === $toolAccessChecker || null === $toolDefinitions) {
             return [];
         }
 
         $toolNames = $toolAccessChecker->getPermittedToolNames();
         if (false === $withWriteTools) {
-            $toolNames = array_diff($toolNames, $toolAccessChecker->getWriteToolNames()) |> array_values(...);
+            $toolNames = array_diff($toolNames, $toolDefinitions->getWriteToolNames()) |> array_values(...);
         }
 
         return array_map(
             static fn (string $toolName): PersonalAccessTokenTool => new PersonalAccessTokenTool(
                 name: $toolName,
                 writeTool: $toolAccessChecker->isWriteTool($toolName),
-                category: $toolAccessChecker->getToolCategory($toolName),
+                category: $toolDefinitions->getToolCategory($toolName),
             ),
             $toolNames,
         );

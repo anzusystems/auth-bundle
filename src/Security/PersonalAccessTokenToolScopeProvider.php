@@ -17,11 +17,11 @@ final readonly class PersonalAccessTokenToolScopeProvider implements McpToolScop
     ) {
     }
 
-    public function provideToolScope(): ?McpToolScope
+    public function provideToolScope(): McpToolScope
     {
         $token = $this->tokenStorage->getToken();
         if (null === $token || false === $token->hasAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE)) {
-            return null;
+            return new McpToolScope();
         }
 
         $toolScope = $token->getAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE);

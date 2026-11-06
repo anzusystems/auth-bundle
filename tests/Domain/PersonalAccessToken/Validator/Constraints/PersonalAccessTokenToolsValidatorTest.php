@@ -82,13 +82,15 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
             return new PersonalAccessTokenToolResolver();
         }
 
-        return new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
-            toolDefinitions: new McpToolDefinitions([
-                self::READ_TOOL => new McpToolDefinition(permission: self::PERMISSION, readOnly: true),
-                self::WRITE_TOOL => new McpToolDefinition(permission: self::PERMISSION, previewTool: self::PREVIEW_TOOL),
-                self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, previewOf: self::WRITE_TOOL),
-            ]),
-            security: $this->createStub(Security::class),
-        ));
+        $toolDefinitions = new McpToolDefinitions([
+            self::READ_TOOL => new McpToolDefinition(permission: self::PERMISSION, readOnly: true),
+            self::WRITE_TOOL => new McpToolDefinition(permission: self::PERMISSION, previewTool: self::PREVIEW_TOOL),
+            self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, previewOf: self::WRITE_TOOL),
+        ]);
+
+        return new PersonalAccessTokenToolResolver(
+            toolAccessChecker: new McpToolAccessChecker(toolDefinitions: $toolDefinitions, security: $this->createStub(Security::class)),
+            toolDefinitions: $toolDefinitions,
+        );
     }
 }

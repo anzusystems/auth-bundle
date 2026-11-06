@@ -87,15 +87,17 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
                 static fn (mixed $attribute): bool => in_array(needle: $attribute, haystack: [self::READ_PERMISSION, self::WRITE_PERMISSION], strict: true),
             );
 
-        return new PersonalAccessTokenToolResolver(new McpToolAccessChecker(
-            toolDefinitions: new McpToolDefinitions([
-                self::READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
-                self::WRITE_TOOL => new McpToolDefinition(permission: self::WRITE_PERMISSION, category: self::QUIZZES_CATEGORY, previewTool: self::PREVIEW_TOOL),
-                self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, category: self::QUIZZES_CATEGORY, previewOf: self::WRITE_TOOL),
-                self::NOT_PERMITTED_TOOL => new McpToolDefinition(permission: self::NOT_PERMITTED_PERMISSION, readOnly: true, category: self::DIAGNOSTICS_CATEGORY),
-                self::SECOND_READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
-            ]),
-            security: $security,
-        ));
+        $toolDefinitions = new McpToolDefinitions([
+            self::READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
+            self::WRITE_TOOL => new McpToolDefinition(permission: self::WRITE_PERMISSION, category: self::QUIZZES_CATEGORY, previewTool: self::PREVIEW_TOOL),
+            self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, category: self::QUIZZES_CATEGORY, previewOf: self::WRITE_TOOL),
+            self::NOT_PERMITTED_TOOL => new McpToolDefinition(permission: self::NOT_PERMITTED_PERMISSION, readOnly: true, category: self::DIAGNOSTICS_CATEGORY),
+            self::SECOND_READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
+        ]);
+
+        return new PersonalAccessTokenToolResolver(
+            toolAccessChecker: new McpToolAccessChecker(toolDefinitions: $toolDefinitions, security: $security),
+            toolDefinitions: $toolDefinitions,
+        );
     }
 }

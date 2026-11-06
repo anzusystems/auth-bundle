@@ -19,12 +19,12 @@ final class PersonalAccessTokenToolScopeProviderTest extends TestCase
 
     public function testRequestWithoutSecurityTokenHasNoScope(): void
     {
-        self::assertNull(new PersonalAccessTokenToolScopeProvider(new TokenStorage())->provideToolScope());
+        self::assertEquals(new McpToolScope(), new PersonalAccessTokenToolScopeProvider(new TokenStorage())->provideToolScope());
     }
 
     public function testTokenOfAnotherAuthenticatorHasNoScope(): void
     {
-        self::assertNull($this->createProvider([])->provideToolScope());
+        self::assertEquals(new McpToolScope(), $this->createProvider([])->provideToolScope());
     }
 
     public function testScopeComesFromThePersonalAccessToken(): void

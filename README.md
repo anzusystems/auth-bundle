@@ -165,7 +165,8 @@ Every token says which MCP tools it may use, fixed at creation, in two separate 
 * `writeTools` (`AbstractPersonalAccessToken::getWriteTools()`): the write tools, stored in the nullable JSON column
   `write_tools`. An empty list is a read-only token, and so is `NULL` in the column.
 * `readTools` (`getReadTools()`): the read tools, stored in the nullable JSON column `read_tools`. `null` keeps every
-  read tool the user may use, also ones added later, and `[]` gives none.
+  read tool the user may use, also ones added later, and `[]` gives none. A tool declared with
+  `#[AsMcpTool(explicitGrant: true)]` is never part of `null`: the token gets it only when `readTools` names it.
 
 A token never gets more than its user: the tool permission is checked again on every call. An MCP preview tool
 (`#[AsMcpTool(previewOf: …)]`) is never listed: a token gets it together with its write tool.
@@ -179,9 +180,10 @@ answers 422 on `readTools` or `writeTools` for a tool whose mapped permission th
 least one write tool additionally requires `auth_personalAccessToken_createWithWriteTools`, which super admins hold
 implicitly, otherwise the answer is 403. `GET <prefix>/personal-access-token/tools` (allowed with
 `auth_personalAccessToken_create`) returns the tools the current user may grant as
-`[{"name": "list_published_articles", "writeTool": false, "category": "articles"}, …]`, so a creation form can offer
-them. `category` is the category of the tool from `#[AsMcpTool(category: …)]`, camelCase, so a client can build a
-translation key from it; the items come in the order of `McpToolAccessChecker::getPermittedToolNames()`, not grouped by category.
+`[{"name": "list_published_articles", "writeTool": false, "category": "articles", "explicitGrant": false}, …]`, so a
+creation form can offer them. A tool with `explicitGrant: true` reaches a token only by name, so a form that offers
+"every read tool" as `readTools: null` leaves it out and sends a list when the user picks it. `category` is the
+category of the tool from `#[AsMcpTool(category: …)]`, camelCase, so a client can build a translation key from it; the items come in the order of `McpToolAccessChecker::getPermittedToolNames()`, not grouped by category.
 
 The authenticator puts a common-bundle `McpToolScope` on the security token
 (`PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE`), and `PersonalAccessTokenToolScopeProvider` is registered as
@@ -200,8 +202,8 @@ Console commands:
   notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
   never-expiring token can only be issued deliberately for a system user (e.g. a service integration). `--write-tool`
   is repeatable, one write tool per option; without it the token is read only. `--read-tool` is repeatable too; without
-  it the token keeps every read tool its user may use, and `--no-read-tools` gives it none. The command prints the
-  granted tools.
+  it the token keeps every read tool its user may use except the `explicitGrant` ones, and `--no-read-tools` gives it
+  none. The command prints the granted tools.
 * `anzu:personal-access-token:list <userId>` — lists a user's tokens with id, status, dates and tools, never the token
   itself.
 * `anzu:personal-access-token:revoke <id>` — revokes a token of any user, it stops working at once. A token already

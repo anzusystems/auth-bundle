@@ -15,6 +15,8 @@ final readonly class PersonalAccessTokenTool
         public bool $writeTool,
         #[Serialize]
         public string $category,
+        #[Serialize]
+        public bool $explicitGrant,
     ) {
     }
 }

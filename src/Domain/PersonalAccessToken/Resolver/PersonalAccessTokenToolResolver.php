@@ -66,6 +66,7 @@ final readonly class PersonalAccessTokenToolResolver
                 name: $toolName,
                 writeTool: $toolAccessChecker->isWriteTool($toolName),
                 category: $toolDefinitions->getToolCategory($toolName),
+                explicitGrant: true === $toolDefinitions->find($toolName)?->explicitGrant,
             ),
             $toolNames,
         );

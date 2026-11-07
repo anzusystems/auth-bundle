@@ -70,7 +70,7 @@ final class CreatePersonalAccessTokenCommand extends Command
         )]
         array $writeTools = [],
         #[Option(
-            description: 'Name of an MCP read tool the token may use, repeat the option to allow more tools. Without it the token keeps every read tool its user may use.',
+            description: 'Name of an MCP read tool the token may use, repeat the option to allow more tools. Without it the token keeps every read tool its user may use, except the tools granted only by name.',
             name: 'read-tool',
         )]
         array $readTools = [],

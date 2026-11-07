@@ -9,6 +9,7 @@
 * `PersonalAccessTokenAuthenticator` puts a common-bundle `McpToolScope` on the security token under `TOOL_SCOPE_ATTRIBUTE`. The new `PersonalAccessTokenToolScopeProvider` is registered as common-bundle's `McpToolScopeProviderInterface`, so the MCP server hides and refuses the other tools. It throws a `LogicException` when the attribute is not a `McpToolScope`.
 * `anzu:personal-access-token:create` takes `--write-tool`, `--read-tool` and `--no-read-tools`.
 * New `anzu:personal-access-token:list <userId>` and `anzu:personal-access-token:revoke <id>` commands, so an operator can find and revoke a token of any user.
+* `PersonalAccessTokenVoter` denies every `auth_personalAccessToken_*` permission to a request authenticated by a personal access token, a super admin included, so a token limited to some tools cannot create a token with more tools, nor read or revoke other tokens.
 
 ### Changes
 * After a rollback to a version without `readTools`, a token with narrowed read tools sees every read tool its user may use until the new version is back.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Tests\Security\Voter;
 
+use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
@@ -17,6 +18,13 @@ use Symfony\Component\Security\Core\Authorization\Voter\VoterInterface;
 
 final class PersonalAccessTokenVoterTest extends TestCase
 {
+    private const array ALL_PERMISSIONS = [
+        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE,
+        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS,
+        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_READ,
+        PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_REVOKE,
+    ];
+
     #[DataProvider('createPermissionDataProvider')]
     public function testCreateIsDeniedWithoutMcpRole(string $permission): void
     {
@@ -114,6 +122,27 @@ final class PersonalAccessTokenVoterTest extends TestCase
         self::assertSame(VoterInterface::ACCESS_GRANTED, $result);
     }
 
+    #[DataProvider('permissionDataProvider')]
+    public function testRequestAuthenticatedByPersonalAccessTokenIsDenied(string $permission, bool $isSuperAdmin): void
+    {
+        $voter = $this->createVoter(isGrantedMap: [
+            [AnzuUser::ROLE_SUPER_ADMIN, null, $isSuperAdmin],
+            [PersonalAccessTokenPermission::ROLE_MCP, null, true],
+        ]);
+        $user = $this->createUser(permissions: [
+            $permission => Grant::ALLOW,
+        ]);
+        $token = $this->createStub(TokenInterface::class);
+        $token->method('getUser')
+            ->willReturn($user);
+        $token->method('hasAttribute')
+            ->willReturnMap([[PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE, true]]);
+
+        $result = $voter->vote(token: $token, subject: null, attributes: [$permission]);
+
+        self::assertSame(VoterInterface::ACCESS_DENIED, $result);
+    }
+
     public function testUnsupportedAttributeAbstains(): void
     {
         $voter = $this->createVoter(isGrantedMap: []);
@@ -132,6 +161,20 @@ final class PersonalAccessTokenVoterTest extends TestCase
             'create' => [PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE],
             'create with write tools' => [PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS],
         ];
+    }
+
+    /**
+     * @return array<string, array{0: string, 1: bool}>
+     */
+    public static function permissionDataProvider(): array
+    {
+        $cases = [];
+        foreach (self::ALL_PERMISSIONS as $permission) {
+            $cases[$permission] = [$permission, false];
+            $cases[$permission . ' as super admin'] = [$permission, true];
+        }
+
+        return $cases;
     }
 
     /**

@@ -128,7 +128,8 @@ $routes
 
 Authorization uses the `auth_personalAccessToken_(create|createWithWriteTools|read|revoke)` permissions (see
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
-configured via `create_role` (default `ROLE_MCP`).
+configured via `create_role` (default `ROLE_MCP`). A request authenticated by a personal access token never manages
+tokens, a super admin included: all four permissions are denied, so a scoped token cannot create a wider one.
 
 Declare these permissions in the host's common-bundle permission config (`anzu_systems_common.permissions.config`),
 together with their translations, so the admin can grant them. Without the declaration the admin cannot grant them,

@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Security\Authentication;
 
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
+use AnzuSystems\CommonBundle\Mcp\Security\McpToolScope;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use DateTimeImmutable;
-use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\NonUniqueResultException;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,6 +24,9 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
 
 final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
+    public const string TOOL_SCOPE_ATTRIBUTE = 'personal_access_token_tool_scope';
+
+    private const int LAST_USED_THROTTLE_SECONDS = 300;
     private const string AUTHORIZATION_HEADER = 'Authorization';
     private const string BEARER_PREFIX = 'Bearer ';
     private const string WWW_AUTHENTICATE_HEADER = 'WWW-Authenticate';
@@ -37,15 +37,9 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
     private const string MESSAGE_INVALID_TOKEN = 'The personal access token is invalid, revoked or expired, or its '
         . 'user is disabled. The header reached this application and was rejected.';
 
-    /**
-     * @param class-string<AnzuUser> $userEntityClass
-     */
     public function __construct(
         private readonly PersonalAccessTokenRepository $personalAccessTokenRepo,
         private readonly PersonalAccessTokenManager $personalAccessTokenManager,
-        private readonly PersonalAccessTokenAuthCache $authCache,
-        private readonly EntityManagerInterface $entityManager,
-        private readonly string $userEntityClass,
     ) {
     }
 
@@ -64,21 +58,40 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
         $plainToken = $this->extractPlainToken(
             (string) $request->headers->get(self::AUTHORIZATION_HEADER)
         );
-        $tokenHash = AbstractPersonalAccessToken::hashToken($plainToken);
-        $cacheVersion = $this->authCache->getInvalidationVersion($tokenHash);
-        $cachedToken = $this->authCache->getToken($tokenHash, $cacheVersion)
-            ?? $this->authenticateAgainstDatabase($tokenHash, $cacheVersion);
-        $user = $this->entityManager->find($this->userEntityClass, $cachedToken->userId);
-        if (false === ($user instanceof AnzuUser)) {
-            throw new AuthenticationException(sprintf('User (%d) not found!', $cachedToken->userId));
+        $personalAccessToken = $this->personalAccessTokenRepo->findOneActiveByTokenHash(
+            AbstractPersonalAccessToken::hashToken($plainToken)
+        );
+        if (null === $personalAccessToken) {
+            throw new AuthenticationException('Invalid personal access token!');
         }
+
+        $user = $personalAccessToken->getUser();
         if (false === $user->isEnabled()) {
             throw new AuthenticationException(sprintf('User (%d) is not active or is disabled!', (int) $user->getId()));
         }
 
-        return new SelfValidatingPassport(
+        $this->updateLastUsedAtThrottled($personalAccessToken);
+
+        $passport = new SelfValidatingPassport(
             new UserBadge((string) $user->getId(), static fn (): AnzuUser => $user)
         );
+        $passport->setAttribute(
+            self::TOOL_SCOPE_ATTRIBUTE,
+            new McpToolScope(
+                readToolNames: $personalAccessToken->getReadTools(),
+                writeToolNames: $personalAccessToken->getWriteTools(),
+            ),
+        );
+
+        return $passport;
+    }
+
+    public function createToken(Passport $passport, string $firewallName): TokenInterface
+    {
+        $token = parent::createToken($passport, $firewallName);
+        $token->setAttribute(self::TOOL_SCOPE_ATTRIBUTE, $passport->getAttribute(self::TOOL_SCOPE_ATTRIBUTE));
+
+        return $token;
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
@@ -94,23 +107,6 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
     public function start(Request $request, ?AuthenticationException $authException = null): Response
     {
         return $this->createUnauthorizedResponse(self::MESSAGE_MISSING_TOKEN);
-    }
-
-    private function authenticateAgainstDatabase(string $tokenHash, int $cacheVersion): CachedPersonalAccessToken
-    {
-        try {
-            $personalAccessToken = $this->personalAccessTokenRepo->findOneActiveByTokenHash($tokenHash);
-        } catch (NonUniqueResultException $exception) {
-            throw new AuthenticationException('Ambiguous personal access token!', 0, $exception);
-        }
-        if (null === $personalAccessToken) {
-            throw new AuthenticationException('Invalid personal access token!');
-        }
-        $this->updateLastUsedAtThrottled($personalAccessToken);
-        $cachedToken = CachedPersonalAccessToken::fromEntity($personalAccessToken);
-        $this->authCache->storeToken($tokenHash, $cacheVersion, $cachedToken, $personalAccessToken->getExpiresAt());
-
-        return $cachedToken;
     }
 
     private function createUnauthorizedResponse(string $message): JsonResponse
@@ -142,7 +138,7 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
             return;
         }
         $lastUsedAt = $personalAccessToken->getLastUsedAt();
-        $throttleThreshold = AnzuApp::date(sprintf('-%d seconds', PersonalAccessTokenAuthCache::USER_ID_EXPIRE_TIME));
+        $throttleThreshold = AnzuApp::date(sprintf('-%d seconds', self::LAST_USED_THROTTLE_SECONDS));
         if ($lastUsedAt instanceof DateTimeImmutable && $lastUsedAt > $throttleThreshold) {
             return;
         }

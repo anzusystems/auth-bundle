@@ -35,7 +35,6 @@ final class ValidateOAuth2AccessTokenProcess
             throw new InvalidJwtException('Please configure SSO public certificate.');
         }
 
-        /** @psalm-var non-empty-string $subject */
         $subject = (string) $token->claims()
             ->get(RegisteredClaims::SUBJECT);
 

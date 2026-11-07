@@ -15,12 +15,11 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Random\RandomException;
+use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Attribute\Option;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'anzu:personal-access-token:create',
@@ -28,10 +27,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 )]
 final class CreatePersonalAccessTokenCommand extends Command
 {
-    private const string ARG_USER_ID = 'userId';
-    private const string OPTION_NAME = 'name';
-    private const string OPTION_EXPIRES_AT = 'expires-at';
-    private const string OPTION_NEVER_EXPIRES = 'never-expires';
+    private const string LIST_SEPARATOR = ', ';
+    private const string WRITE_TOOLS_NONE = 'none, the token is read only';
+    public const string TOOLS_NONE = 'none';
+    public const string READ_TOOLS_UNRESTRICTED = 'all the user may use, except tools granted only by name';
     private const string EXPIRES_AT_NEVER = 'never';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
@@ -46,78 +45,89 @@ final class CreatePersonalAccessTokenCommand extends Command
         parent::__construct();
     }
 
-    protected function configure(): void
-    {
-        $this
-            ->addArgument(self::ARG_USER_ID, InputArgument::REQUIRED, 'Id of the user owning the token.')
-            ->addOption(self::OPTION_NAME, null, InputOption::VALUE_REQUIRED, 'Token label, e.g. "mcp-agent".')
-            ->addOption(self::OPTION_EXPIRES_AT, null, InputOption::VALUE_REQUIRED, sprintf(
-                'Expiration date time, e.g. "2026-09-21 12:00:00". Defaults to %s, at most %s.',
-                AbstractPersonalAccessToken::DEFAULT_EXPIRES_AT_DATE,
-                AbstractPersonalAccessToken::MAX_EXPIRES_AT_DATE,
-            ))
-            ->addOption(self::OPTION_NEVER_EXPIRES, null, InputOption::VALUE_NONE, sprintf(
-                'Create a token without expiration (mutually exclusive with --%s).',
-                self::OPTION_EXPIRES_AT,
-            ))
-        ;
-    }
-
     /**
+     * @param list<string> $writeTools
+     * @param list<string> $readTools
+     *
      * @throws AppReadOnlyModeException
      * @throws RandomException
      */
-    protected function execute(InputInterface $input, OutputInterface $output): int
-    {
+    public function __invoke(
+        SymfonyStyle $io,
+        #[Argument(description: 'Id of the user owning the token.')]
+        int $userId,
+        #[Option(description: 'Token label, e.g. "mcp-agent".')]
+        string $name = '',
+        #[Option(description: 'Expiration date time, e.g. "2026-09-21 12:00:00". Defaults to '
+            . AbstractPersonalAccessToken::DEFAULT_EXPIRES_AT_DATE . ', at most '
+            . AbstractPersonalAccessToken::MAX_EXPIRES_AT_DATE . '.')]
+        string $expiresAt = '',
+        #[Option(description: 'Create a token without expiration (mutually exclusive with --expires-at).')]
+        bool $neverExpires = false,
+        #[Option(
+            description: 'Name of an MCP write tool the token may call, repeat the option to grant more tools. Without it the token is read only.',
+            name: 'write-tool',
+        )]
+        array $writeTools = [],
+        #[Option(
+            description: 'Name of an MCP read tool the token may use, repeat the option to allow more tools. Without it the token keeps every read tool its user may use, except the tools granted only by name.',
+            name: 'read-tool',
+        )]
+        array $readTools = [],
+        #[Option(description: 'Give the token no read tool (mutually exclusive with --read-tool).')]
+        bool $noReadTools = false,
+    ): int {
         AnzuApp::throwOnReadOnlyMode();
 
-        $userId = (int) $input->getArgument(self::ARG_USER_ID);
         $user = $this->entityManager->find($this->userEntityClass, $userId);
         if (false === ($user instanceof AnzuUser)) {
-            $output->writeln(sprintf('<error>User (%d) not found.</error>', $userId));
+            $io->writeln(sprintf('<error>User (%d) not found.</error>', $userId));
 
             return self::FAILURE;
         }
-
-        $name = (string) $input->getOption(self::OPTION_NAME);
         if (StringHelper::isEmpty($name)) {
-            $output->writeln(sprintf('<error>Option --%s is required.</error>', self::OPTION_NAME));
+            $io->writeln('<error>Option --name is required.</error>');
 
             return self::FAILURE;
         }
+        if ($neverExpires && StringHelper::isNotEmpty($expiresAt)) {
+            $io->writeln('<error>Options --expires-at and --never-expires are mutually exclusive.</error>');
 
-        $neverExpires = (bool) $input->getOption(self::OPTION_NEVER_EXPIRES);
-        if ($neverExpires && StringHelper::isNotEmpty((string) $input->getOption(self::OPTION_EXPIRES_AT))) {
-            $output->writeln(sprintf(
-                '<error>Options --%s and --%s are mutually exclusive.</error>',
-                self::OPTION_EXPIRES_AT,
-                self::OPTION_NEVER_EXPIRES,
-            ));
+            return self::FAILURE;
+        }
+        if ($noReadTools && false === empty($readTools)) {
+            $io->writeln('<error>Options --read-tool and --no-read-tools are mutually exclusive.</error>');
 
             return self::FAILURE;
         }
 
         try {
-            $expiresAt = $this->resolveExpiresAtOption($input);
+            $expiresAtDate = StringHelper::isEmpty($expiresAt) ? null : new DateTimeImmutable($expiresAt);
         } catch (Exception) {
-            $output->writeln(sprintf(
-                '<error>Invalid --%s value "%s", provide a date time, e.g. "2027-07-09 12:00:00".</error>',
-                self::OPTION_EXPIRES_AT,
-                (string) $input->getOption(self::OPTION_EXPIRES_AT),
+            $io->writeln(sprintf(
+                '<error>Invalid --expires-at value "%s", provide a date time, e.g. "2027-07-09 12:00:00".</error>',
+                $expiresAt,
             ));
 
             return self::FAILURE;
+        }
+
+        $resolvedReadTools = empty($readTools) ? null : $readTools;
+        if ($noReadTools) {
+            $resolvedReadTools = [];
         }
 
         try {
             $result = $this->personalAccessTokenFacade->create(
                 user: $user,
                 name: $name,
-                expiresAt: $expiresAt,
+                expiresAt: $expiresAtDate,
                 neverExpires: $neverExpires,
+                writeTools: $writeTools,
+                readTools: $resolvedReadTools,
             );
         } catch (ValidationException $exception) {
-            $output->writeln(sprintf(
+            $io->writeln(sprintf(
                 '<error>Validation failed: %s</error>',
                 (string) json_encode($exception->getFormattedErrors()),
             ));
@@ -125,22 +135,42 @@ final class CreatePersonalAccessTokenCommand extends Command
             return self::FAILURE;
         }
 
-        $output->writeln(sprintf('Token (shown only once): <info>%s</info>', $result->token));
-        $output->writeln(sprintf(
+        $token = $result->personalAccessToken;
+        $io->writeln(sprintf('Token (shown only once): <info>%s</info>', $result->token));
+        $io->writeln(sprintf(
             'Expires at: %s',
-            $result->personalAccessToken->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
+            $token->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
+        $io->writeln(sprintf('Write tools: %s', $this->formatWriteTools($token->getWriteTools())));
+        $io->writeln(sprintf('Read tools: %s', $this->formatReadTools($token->getReadTools())));
 
         return self::SUCCESS;
     }
 
-    private function resolveExpiresAtOption(InputInterface $input): ?DateTimeImmutable
+    /**
+     * @param list<string> $writeTools
+     */
+    private function formatWriteTools(array $writeTools): string
     {
-        $expiresAtOption = (string) $input->getOption(self::OPTION_EXPIRES_AT);
-        if (StringHelper::isEmpty($expiresAtOption)) {
-            return null;
+        if (empty($writeTools)) {
+            return self::WRITE_TOOLS_NONE;
         }
 
-        return new DateTimeImmutable($expiresAtOption);
+        return implode(self::LIST_SEPARATOR, $writeTools);
+    }
+
+    /**
+     * @param list<string>|null $readTools
+     */
+    private function formatReadTools(?array $readTools): string
+    {
+        if (null === $readTools) {
+            return self::READ_TOOLS_UNRESTRICTED;
+        }
+        if (empty($readTools)) {
+            return self::TOOLS_NONE;
+        }
+
+        return implode(self::LIST_SEPARATOR, $readTools);
     }
 }

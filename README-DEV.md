@@ -77,11 +77,11 @@ Script used to run the coding style fixer:
 
     bin/ecs
 
-## PSALM - Static analyses
+## PHPStan - Static analyses
 
 Script used to run the static analyses:
 
-    bin/psalm
+    bin/phpstan
 
 ## Security
 

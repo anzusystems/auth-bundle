@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Entity;
 
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenTools;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
@@ -37,6 +38,7 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     #[Serialize(handler: EntityIdHandler::class)]
     #[Assert\NotNull(message: ValidationException::ERROR_FIELD_EMPTY)]
+    // @phpstan-ignore doctrine.associationType (a new token has no user until it is set; NotNull rejects persisting it without one)
     protected ?AnzuUser $user = null;
 
     #[ORM\Column(type: Types::STRING, length: 255, options: ['default' => ''])]
@@ -45,8 +47,27 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[Assert\Length(max: 255, maxMessage: ValidationException::ERROR_FIELD_LENGTH_MAX)]
     protected string $name = '';
 
-    #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH)]
+    #[ORM\Column(type: Types::STRING, length: self::TOKEN_HASH_LENGTH, unique: true)]
     protected string $tokenHash = '';
+
+    /**
+     * Nullable so that the previous release can still create tokens during a deploy or after a rollback.
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
+    #[PersonalAccessTokenTools(writeTools: true)]
+    protected ?array $writeTools = null;
+
+    /**
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Serialize]
+    #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
+    #[PersonalAccessTokenTools]
+    protected ?array $readTools = null;
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
@@ -62,6 +83,7 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[Serialize]
     protected ?DateTimeImmutable $lastUsedAt = null;
 
+    // @phpstan-ignore doctrine.finalConstructor (PersonalAccessTokenFacade instantiates the configured class-string without arguments)
     final public function __construct()
     {
         $this->expiresAt = AnzuApp::date(self::DEFAULT_EXPIRES_AT_DATE);
@@ -113,6 +135,43 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public function setTokenHash(string $tokenHash): static
     {
         $this->tokenHash = $tokenHash;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Serialize]
+    public function getWriteTools(): array
+    {
+        return $this->writeTools ?? [];
+    }
+
+    /**
+     * @param array<string> $writeTools
+     */
+    public function setWriteTools(array $writeTools): static
+    {
+        $this->writeTools = array_values($writeTools);
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getReadTools(): ?array
+    {
+        return $this->readTools;
+    }
+
+    /**
+     * @param array<string>|null $readTools
+     */
+    public function setReadTools(?array $readTools): static
+    {
+        $this->readTools = is_array($readTools) ? array_values($readTools) : null;
 
         return $this;
     }

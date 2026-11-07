@@ -6,7 +6,9 @@ namespace AnzuSystems\AuthBundle\DependencyInjection;
 
 use AnzuSystems\AuthBundle\Command\ChangeApiTokenCommand;
 use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
+use AnzuSystems\AuthBundle\Command\ListPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Command\NotifyExpiringPersonalAccessTokensCommand;
+use AnzuSystems\AuthBundle\Command\RevokePersonalAccessTokenCommand;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
 use AnzuSystems\AuthBundle\Contracts\PersonalAccessTokenExpiryNotifierInterface;
@@ -14,21 +16,25 @@ use AnzuSystems\AuthBundle\Contracts\RefreshTokenStorageInterface;
 use AnzuSystems\AuthBundle\Controller\Api\JsonCredentialsAuthController;
 use AnzuSystems\AuthBundle\Controller\Api\OAuth2AuthController;
 use AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Notification\NoopPersonalAccessTokenExpiryNotifier;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Validator\Constraints\PersonalAccessTokenToolsValidator;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\GrantAccessByOAuth2TokenProcess;
 use AnzuSystems\AuthBundle\Domain\Process\OAuth2\ValidateOAuth2AccessTokenProcess;
 use AnzuSystems\AuthBundle\HttpClient\OAuth2HttpClient;
 use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\RefreshTokenStorage\RedisRefreshTokenStorage;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
+use AnzuSystems\AuthBundle\Security\PersonalAccessTokenToolScopeProvider;
 use AnzuSystems\AuthBundle\Security\Voter\PersonalAccessTokenVoter;
 use AnzuSystems\AuthBundle\Serializer\Handler\Handlers\JwtHandler;
 use AnzuSystems\AuthBundle\Util\HttpUtil;
 use AnzuSystems\AuthBundle\Util\StatelessTokenUtil;
+use AnzuSystems\CommonBundle\DependencyInjection\AnzuSystemsCommonExtension;
+use AnzuSystems\CommonBundle\Mcp\Security\McpToolScopeProviderInterface;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use InvalidArgumentException;
@@ -204,15 +210,20 @@ final class AnzuSystemsAuthExtension extends Extension
         ;
 
         $container
-            ->register(PersonalAccessTokenAuthCache::class)
-            ->setAutowired(true)
-            ->setArgument('$patAuthCache', new Reference($config['auth_cache_pool']))
-        ;
-
-        $container
             ->register(PersonalAccessTokenFacade::class)
             ->setAutowired(true)
             ->setArgument('$entityClass', $entityClass)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenToolResolver::class)
+            ->setAutowired(true)
+        ;
+
+        $container
+            ->register(PersonalAccessTokenToolsValidator::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
         ;
 
         $container
@@ -223,7 +234,6 @@ final class AnzuSystemsAuthExtension extends Extension
         $container
             ->register(PersonalAccessTokenAuthenticator::class)
             ->setAutowired(true)
-            ->setArgument('$userEntityClass', $config['user_entity_class'])
         ;
 
         $container
@@ -234,10 +244,29 @@ final class AnzuSystemsAuthExtension extends Extension
         ;
 
         $container
+            ->register(PersonalAccessTokenToolScopeProvider::class)
+            ->setAutowired(true)
+        ;
+        $container->setAlias(McpToolScopeProviderInterface::class, PersonalAccessTokenToolScopeProvider::class);
+
+        $container
             ->register(CreatePersonalAccessTokenCommand::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
-            ->setArgument('$userEntityClass', $config['user_entity_class'])
+            ->setArgument('$userEntityClass', '%' . AnzuSystemsCommonExtension::USER_ENTITY_CLASS_PARAM . '%')
+        ;
+
+        $container
+            ->register(ListPersonalAccessTokensCommand::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+            ->setArgument('$userEntityClass', '%' . AnzuSystemsCommonExtension::USER_ENTITY_CLASS_PARAM . '%')
+        ;
+
+        $container
+            ->register(RevokePersonalAccessTokenCommand::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
         ;
 
         $container

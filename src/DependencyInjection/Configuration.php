@@ -11,7 +11,6 @@ use AnzuSystems\AuthBundle\Model\Enum\AuthType;
 use AnzuSystems\AuthBundle\Model\Enum\JwtAlgorithm;
 use AnzuSystems\AuthBundle\Model\SsoUserDto;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission;
-use AnzuSystems\Contracts\Entity\AnzuUser;
 use Exception;
 use Symfony\Component\Config\Definition\Builder\NodeDefinition;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -52,16 +51,6 @@ final class Configuration implements ConfigurationInterface
                         ->thenInvalid('Invalid personal_access_token entity_class "%s".')
                     ->end()
                 ->end()
-                ->scalarNode('user_entity_class')
-                    ->defaultValue('App\\Entity\\User')
-                    ->validate()
-                        ->ifTrue(static fn (string $userEntityClass): bool => false === is_a($userEntityClass, AnzuUser::class, true))
-                        ->thenInvalid('Invalid personal_access_token user_entity_class "%s".')
-                    ->end()
-                ->end()
-                ->scalarNode('auth_cache_pool')
-                    ->defaultValue('cache.app')
-                    ->end()
                 ->scalarNode('create_role')
                     ->defaultValue(PersonalAccessTokenPermission::ROLE_MCP)
                     ->cannotBeEmpty()

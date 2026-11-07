@@ -7,7 +7,9 @@ namespace AnzuSystems\AuthBundle\Controller\Api;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateDto;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenTool;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission;
 use AnzuSystems\CommonBundle\Controller\AbstractAnzuApiController;
@@ -39,6 +41,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     public function __construct(
         private readonly PersonalAccessTokenFacade $personalAccessTokenFacade,
         private readonly PersonalAccessTokenRepository $personalAccessTokenRepo,
+        private readonly PersonalAccessTokenToolResolver $toolResolver,
         private readonly LoggerInterface $logger,
     ) {
     }
@@ -54,6 +57,19 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
         );
     }
 
+    #[Route('/tools', name: 'get_tools', methods: [Request::METHOD_GET])]
+    #[OAResponse([PersonalAccessTokenTool::class]), OAResponseUnauthorized, OAResponseForbidden]
+    public function getTools(): JsonResponse
+    {
+        $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE);
+
+        return $this->okResponse(
+            $this->toolResolver->resolveGrantableTools(
+                withWriteTools: $this->isGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS),
+            )
+        );
+    }
+
     /**
      * @throws ValidationException|AppReadOnlyModeException|RandomException
      */
@@ -63,17 +79,24 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     {
         AnzuApp::throwOnReadOnlyMode();
         $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE);
+        if (false === empty($dto->getWriteTools())) {
+            $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
+        }
         AuditLogResourceHelper::excludeFromAuditLogs($request);
-        $result = $this->personalAccessTokenFacade->create(
+        $result = $this->personalAccessTokenFacade->createGranted(
             user: $this->getUser(),
             name: $dto->getName(),
             expiresAt: $dto->getExpiresAt(),
+            writeTools: $dto->getWriteTools(),
+            readTools: $dto->getReadTools(),
         );
         $this->logger->info('Personal access token created.', [
             'resource' => $result->personalAccessToken::getResourceName(),
             'personalAccessTokenId' => $result->personalAccessToken->getId(),
             'userId' => $this->getUser()
                 ->getId(),
+            'writeTools' => $result->personalAccessToken->getWriteTools(),
+            'readTools' => $result->personalAccessToken->getReadTools(),
         ]);
 
         return $this->createdResponse($result);

@@ -31,12 +31,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 final class PersonalAccessTokenFacadeTest extends TestCase
 {
     private const int USER_ID = 42;
-    private const string WRITE_TOOL = 'create_quiz';
-    private const string READ_TOOL = 'list_published_articles';
+    private const string WRITE_TOOL = 'example_write';
+    private const string READ_TOOL = 'example_read';
     private const string NOT_PERMITTED_READ_TOOL = 'search_app_logs';
-    private const string NOT_PERMITTED_WRITE_TOOL = 'update_robots_txt';
-    private const string GRANTED_PERMISSION = 'cms_granted';
-    private const string DENIED_PERMISSION = 'cms_denied';
+    private const string NOT_PERMITTED_WRITE_TOOL = 'example_other_write';
+    private const string GRANTED_PERMISSION = 'example_granted';
+    private const string DENIED_PERMISSION = 'example_denied';
 
     private PersonalAccessTokenFacade $facade;
     private ?object $persistedEntity = null;

@@ -15,18 +15,18 @@ use Symfony\Bundle\SecurityBundle\Security;
 
 final class PersonalAccessTokenToolResolverTest extends TestCase
 {
-    private const string ARTICLES_CATEGORY = 'articles';
-    private const string QUIZZES_CATEGORY = 'quizzes';
+    private const string READ_CATEGORY = 'exampleReads';
+    private const string WRITE_CATEGORY = 'exampleWrites';
     private const string DIAGNOSTICS_CATEGORY = 'diagnostics';
-    private const string READ_TOOL = 'list_published_articles';
-    private const string WRITE_TOOL = 'create_quiz';
-    private const string PREVIEW_TOOL = 'preview_quiz';
+    private const string READ_TOOL = 'example_read';
+    private const string WRITE_TOOL = 'example_write';
+    private const string PREVIEW_TOOL = 'example_preview';
     private const string NOT_PERMITTED_TOOL = 'search_app_logs';
-    private const string SECOND_READ_TOOL = 'get_articles';
-    private const string EXPLICIT_GRANT_TOOL = 'get_article_drafts';
-    private const string READ_PERMISSION = 'cms_article_read';
-    private const string WRITE_PERMISSION = 'cms_quiz_create';
-    private const string EXPLICIT_GRANT_PERMISSION = 'cms_article_update';
+    private const string SECOND_READ_TOOL = 'example_second_read';
+    private const string EXPLICIT_GRANT_TOOL = 'example_explicit_grant';
+    private const string READ_PERMISSION = 'example_read_permission';
+    private const string WRITE_PERMISSION = 'example_write_permission';
+    private const string EXPLICIT_GRANT_PERMISSION = 'example_update_permission';
     private const string NOT_PERMITTED_PERMISSION = 'common_appLog_read';
 
     /**
@@ -49,10 +49,10 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
             'mcp' => [
                 true,
                 [
-                    new PersonalAccessTokenTool(name: self::READ_TOOL, writeTool: false, category: self::ARTICLES_CATEGORY, explicitGrant: false),
-                    new PersonalAccessTokenTool(name: self::WRITE_TOOL, writeTool: true, category: self::QUIZZES_CATEGORY, explicitGrant: false),
-                    new PersonalAccessTokenTool(name: self::SECOND_READ_TOOL, writeTool: false, category: self::ARTICLES_CATEGORY, explicitGrant: false),
-                    new PersonalAccessTokenTool(name: self::EXPLICIT_GRANT_TOOL, writeTool: false, category: self::ARTICLES_CATEGORY, explicitGrant: true),
+                    new PersonalAccessTokenTool(name: self::READ_TOOL, writeTool: false, category: self::READ_CATEGORY, explicitGrant: false),
+                    new PersonalAccessTokenTool(name: self::WRITE_TOOL, writeTool: true, category: self::WRITE_CATEGORY, explicitGrant: false),
+                    new PersonalAccessTokenTool(name: self::SECOND_READ_TOOL, writeTool: false, category: self::READ_CATEGORY, explicitGrant: false),
+                    new PersonalAccessTokenTool(name: self::EXPLICIT_GRANT_TOOL, writeTool: false, category: self::READ_CATEGORY, explicitGrant: true),
                 ],
             ],
             'without mcp' => [false, []],
@@ -91,12 +91,12 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
             );
 
         $toolDefinitions = new McpToolDefinitions([
-            self::READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
-            self::WRITE_TOOL => new McpToolDefinition(permission: self::WRITE_PERMISSION, category: self::QUIZZES_CATEGORY, previewTool: self::PREVIEW_TOOL),
-            self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, category: self::QUIZZES_CATEGORY, previewOf: self::WRITE_TOOL),
+            self::READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::READ_CATEGORY),
+            self::WRITE_TOOL => new McpToolDefinition(permission: self::WRITE_PERMISSION, category: self::WRITE_CATEGORY, previewTool: self::PREVIEW_TOOL),
+            self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, category: self::WRITE_CATEGORY, previewOf: self::WRITE_TOOL),
             self::NOT_PERMITTED_TOOL => new McpToolDefinition(permission: self::NOT_PERMITTED_PERMISSION, readOnly: true, category: self::DIAGNOSTICS_CATEGORY),
-            self::SECOND_READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY),
-            self::EXPLICIT_GRANT_TOOL => new McpToolDefinition(permission: self::EXPLICIT_GRANT_PERMISSION, readOnly: true, category: self::ARTICLES_CATEGORY, explicitGrant: true),
+            self::SECOND_READ_TOOL => new McpToolDefinition(permission: self::READ_PERMISSION, readOnly: true, category: self::READ_CATEGORY),
+            self::EXPLICIT_GRANT_TOOL => new McpToolDefinition(permission: self::EXPLICIT_GRANT_PERMISSION, readOnly: true, category: self::READ_CATEGORY, explicitGrant: true),
         ]);
 
         return new PersonalAccessTokenToolResolver(

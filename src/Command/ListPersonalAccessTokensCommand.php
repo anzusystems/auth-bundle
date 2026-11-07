@@ -25,8 +25,6 @@ final class ListPersonalAccessTokensCommand extends Command
     public const string STATUS_ACTIVE = 'active';
     public const string STATUS_EXPIRED = 'expired';
     public const string STATUS_REVOKED = 'revoked';
-    private const string READ_TOOLS_ALL = 'all';
-    private const string TOOLS_NONE = 'none';
     private const string NO_VALUE = '-';
     private const string LIST_SEPARATOR = ', ';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
@@ -93,7 +91,7 @@ final class ListPersonalAccessTokensCommand extends Command
     private function formatReadTools(?array $readTools): string
     {
         if (null === $readTools) {
-            return self::READ_TOOLS_ALL;
+            return CreatePersonalAccessTokenCommand::READ_TOOLS_UNRESTRICTED;
         }
 
         return $this->formatTools($readTools);
@@ -105,7 +103,7 @@ final class ListPersonalAccessTokensCommand extends Command
     private function formatTools(array $tools): string
     {
         if (empty($tools)) {
-            return self::TOOLS_NONE;
+            return CreatePersonalAccessTokenCommand::TOOLS_NONE;
         }
 
         return implode(self::LIST_SEPARATOR, $tools);

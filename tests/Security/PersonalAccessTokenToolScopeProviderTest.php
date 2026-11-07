@@ -29,7 +29,7 @@ final class PersonalAccessTokenToolScopeProviderTest extends TestCase
 
     public function testScopeComesFromThePersonalAccessToken(): void
     {
-        $toolScope = new McpToolScope(['list_sites'], ['create_quiz']);
+        $toolScope = new McpToolScope(['example_read'], ['example_write']);
 
         self::assertSame(
             $toolScope,
@@ -40,7 +40,7 @@ final class PersonalAccessTokenToolScopeProviderTest extends TestCase
 
     public function testMalformedAttributeFailsInsteadOfOpeningEveryTool(): void
     {
-        $provider = $this->createProvider([PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE => ['list_sites']]);
+        $provider = $this->createProvider([PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE => ['example_read']]);
 
         $this->expectException(LogicException::class);
 

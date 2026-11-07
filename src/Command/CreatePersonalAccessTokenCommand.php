@@ -29,8 +29,8 @@ final class CreatePersonalAccessTokenCommand extends Command
 {
     private const string LIST_SEPARATOR = ', ';
     private const string WRITE_TOOLS_NONE = 'none, the token is read only';
-    private const string READ_TOOLS_NONE = 'none';
-    private const string READ_TOOLS_UNRESTRICTED = 'all the user may use';
+    public const string TOOLS_NONE = 'none';
+    public const string READ_TOOLS_UNRESTRICTED = 'all the user may use, except tools granted only by name';
     private const string EXPIRES_AT_NEVER = 'never';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
@@ -168,7 +168,7 @@ final class CreatePersonalAccessTokenCommand extends Command
             return self::READ_TOOLS_UNRESTRICTED;
         }
         if (empty($readTools)) {
-            return self::READ_TOOLS_NONE;
+            return self::TOOLS_NONE;
         }
 
         return implode(self::LIST_SEPARATOR, $readTools);

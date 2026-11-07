@@ -20,11 +20,11 @@ use Symfony\Component\Validator\Validation;
 
 final class PersonalAccessTokenToolsValidatorTest extends TestCase
 {
-    private const string READ_TOOL = 'list_published_articles';
-    private const string WRITE_TOOL = 'create_quiz';
-    private const string PREVIEW_TOOL = 'preview_quiz';
-    private const string UNKNOWN_TOOL = 'delete_article';
-    private const string PERMISSION = 'cms_article_read';
+    private const string READ_TOOL = 'example_read';
+    private const string WRITE_TOOL = 'example_write';
+    private const string PREVIEW_TOOL = 'example_preview';
+    private const string UNKNOWN_TOOL = 'example_unknown';
+    private const string PERMISSION = 'example_read_permission';
 
     /**
      * @param list<string>|null $tools

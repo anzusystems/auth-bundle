@@ -17,11 +17,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\SwitchUserToken;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\CustomCredentials;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Token\PostAuthenticationToken;
+use UnexpectedValueException;
 
 final class JwtAuthentication extends AbstractAuthenticator
 {
@@ -46,7 +48,6 @@ final class JwtAuthentication extends AbstractAuthenticator
             throw new AuthenticationException(previous: $exception);
         }
 
-        /** @psalm-suppress ArgumentTypeCoercion */
         $passport = new Passport(
             new UserBadge((string) $jwtToken->claims()->get(RegisteredClaims::SUBJECT)),
             new CustomCredentials($this->checkCredentials(...), $jwtToken),
@@ -66,7 +67,7 @@ final class JwtAuthentication extends AbstractAuthenticator
         return null;
     }
 
-    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?JsonResponse
+    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): JsonResponse
     {
         return new JsonResponse([
             'message' => 'The resource owner or authorization server denied the request.',
@@ -88,8 +89,15 @@ final class JwtAuthentication extends AbstractAuthenticator
         return new PostAuthenticationToken($passport->getUser(), $firewallName, $passport->getUser()->getRoles());
     }
 
-    private function checkCredentials(Token\Plain $token, AnzuAuthUserInterface $user): bool
+    private function checkCredentials(mixed $token, UserInterface $user): bool
     {
+        if (false === $token instanceof Token\Plain) {
+            throw new UnexpectedValueException(sprintf('Unsupported JWT "%s".', get_debug_type($token)));
+        }
+        if (false === $user instanceof AnzuAuthUserInterface) {
+            throw new UnexpectedValueException(sprintf('Unsupported user "%s".', get_debug_type($user)));
+        }
+
         if (false === $user->isEnabled()) {
             throw new AuthenticationException('User disabled!');
         }

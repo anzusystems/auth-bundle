@@ -4,35 +4,37 @@ declare(strict_types=1);
 
 namespace AnzuSystems\AuthBundle\Tests\Security\Authentication;
 
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Cache\PersonalAccessTokenAuthCache;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\CachedPersonalAccessToken;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\PersonalAccessToken;
 use AnzuSystems\CommonBundle\Domain\User\CurrentAnzuUserProvider;
+use AnzuSystems\CommonBundle\Mcp\Security\McpToolScope;
 use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\ClassMetadata;
+use Doctrine\ORM\Query;
+use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
+use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 
 final class PersonalAccessTokenAuthenticatorTest extends TestCase
 {
-    private const int PERSONAL_ACCESS_TOKEN_ID = 7;
-    private const int USER_ID = 42;
-    private const string USER_ENTITY_CLASS = 'App\Entity\User';
     private const string PLAIN_TOKEN = AbstractPersonalAccessToken::TOKEN_PREFIX . 'a1b2c3d4';
+    private const int USER_ID = 42;
+    private const string FIREWALL_NAME = 'main';
+    private const string READ_TOOL = 'example_read';
+    private const string WRITE_TOOL = 'example_write';
 
-    private PersonalAccessTokenAuthCache $authCache;
-    private EntityManagerInterface $entityManager;
     private PersonalAccessTokenAuthenticator $authenticator;
+    private ?AbstractPersonalAccessToken $storedToken = null;
 
     public static function setUpBeforeClass(): void
     {
@@ -48,9 +50,22 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
 
     protected function setUp(): void
     {
+        $query = $this->createStub(Query::class);
+        $query->method('getOneOrNullResult')
+            ->willReturnCallback(fn (): ?AbstractPersonalAccessToken => $this->storedToken);
+        $queryBuilder = $this->createStub(QueryBuilder::class);
+        foreach (['select', 'from', 'where', 'andWhere', 'setParameter'] as $fluentMethod) {
+            $queryBuilder->method($fluentMethod)
+                ->willReturnSelf();
+        }
+        $queryBuilder->method('getQuery')
+            ->willReturn($query);
+
         $repositoryEntityManager = $this->createStub(EntityManagerInterface::class);
         $repositoryEntityManager->method('getClassMetadata')
             ->willReturn(new ClassMetadata(PersonalAccessToken::class));
+        $repositoryEntityManager->method('createQueryBuilder')
+            ->willReturn($queryBuilder);
         $registry = $this->createStub(ManagerRegistry::class);
         $registry->method('getManagerForClass')
             ->willReturn($repositoryEntityManager);
@@ -59,15 +74,11 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         $manager->setEntityManager($this->createStub(EntityManagerInterface::class));
         $manager->setCurrentAnzuUserProvider($this->createStub(CurrentAnzuUserProvider::class));
 
-        $this->authCache = new PersonalAccessTokenAuthCache(new ArrayAdapter());
-        $this->entityManager = $this->createStub(EntityManagerInterface::class);
         $this->authenticator = new PersonalAccessTokenAuthenticator(
             new PersonalAccessTokenRepository($registry, PersonalAccessToken::class),
             $manager,
-            $this->authCache,
-            $this->entityManager,
-            self::USER_ENTITY_CLASS,
         );
+        $this->storedToken = null;
     }
 
     public function testSupportsOnlyBearerTokensWithPatPrefix(): void
@@ -79,34 +90,52 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertTrue($this->authenticator->supports($this->createRequest('bearer ' . self::PLAIN_TOKEN)));
     }
 
-    public function testAuthenticateReturnsCachedUser(): void
+    public function testAuthenticatePutsTheToolsOfTheTokenOnThePassport(): void
     {
-        $this->storeTokenForPlainToken();
-        $user = $this->createConfiguredStub(AnzuUser::class, [
-            'getId' => self::USER_ID,
-            'isEnabled' => true,
-        ]);
-        $this->entityManager->method('find')
-            ->willReturn($user);
+        $user = $this->createUser(enabled: true);
+        $this->storedToken = new PersonalAccessToken()
+            ->setUser($user)
+            ->setReadTools([self::READ_TOOL])
+            ->setWriteTools([self::WRITE_TOOL]);
 
         $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
 
         self::assertSame($user, $passport->getUser());
+        self::assertEquals(
+            new McpToolScope(readToolNames: [self::READ_TOOL], writeToolNames: [self::WRITE_TOOL]),
+            $passport->getAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE),
+        );
     }
 
     public function testAuthenticateRejectsDisabledUser(): void
     {
-        $this->storeTokenForPlainToken();
-        $user = $this->createConfiguredStub(AnzuUser::class, [
-            'getId' => self::USER_ID,
-            'isEnabled' => false,
-        ]);
-        $this->entityManager->method('find')
-            ->willReturn($user);
+        $this->storedToken = new PersonalAccessToken()
+            ->setUser($this->createUser(enabled: false));
 
         $this->expectException(AuthenticationException::class);
 
         $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+    }
+
+    public function testAuthenticateRejectsUnknownToken(): void
+    {
+        $this->expectException(AuthenticationException::class);
+
+        $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+    }
+
+    public function testCreateTokenCarriesTheToolScopeOfThePassport(): void
+    {
+        $user = $this->createUser(enabled: true);
+        $toolScope = new McpToolScope(readToolNames: [self::READ_TOOL], writeToolNames: [self::WRITE_TOOL]);
+        $passport = new SelfValidatingPassport(
+            new UserBadge((string) self::USER_ID, static fn (): AnzuUser => $user)
+        );
+        $passport->setAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE, $toolScope);
+
+        $token = $this->authenticator->createToken($passport, self::FIREWALL_NAME);
+
+        self::assertSame($toolScope, $token->getAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE));
     }
 
     public function testUnauthorizedResponseContainsWwwAuthenticateHeader(): void
@@ -129,15 +158,13 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         self::assertNotSame($missing, $invalid);
     }
 
-    private function storeTokenForPlainToken(): void
+    private function createUser(bool $enabled): AnzuUser
     {
-        $tokenHash = AbstractPersonalAccessToken::hashToken(self::PLAIN_TOKEN);
-        $this->authCache->storeToken(
-            $tokenHash,
-            $this->authCache->getInvalidationVersion($tokenHash),
-            new CachedPersonalAccessToken(self::PERSONAL_ACCESS_TOKEN_ID, self::USER_ID),
-            AnzuApp::date('+1 hour'),
-        );
+        return $this->createConfiguredStub(AnzuUser::class, [
+            'getId' => self::USER_ID,
+            'isEnabled' => $enabled,
+            'getRoles' => [],
+        ]);
     }
 
     private function createRequest(string $authorizationHeader): Request

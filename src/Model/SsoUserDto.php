@@ -6,9 +6,6 @@ namespace AnzuSystems\AuthBundle\Model;
 
 use AnzuSystems\SerializerBundle\Attributes\Serialize;
 
-/**
- * @psalm-suppress ClassMustBeFinal
- */
 class SsoUserDto
 {
     #[Serialize]

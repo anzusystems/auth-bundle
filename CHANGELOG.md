@@ -1,3 +1,26 @@
+## Unreleased
+
+### Features
+* Personal access tokens say which MCP tools they may use, fixed at creation: `writeTools` (`list<string>`, `[]` is a read-only token) and `readTools` (`?list<string>`, `null` keeps every read tool the user may use). The management API accepts and returns both. Every name must be a tool of that kind in the MCP configuration, listed once, otherwise validation fails on that field. Add the columns with a migration.
+* Creating a token with at least one write tool through the management API requires the new `auth_personalAccessToken_createWithWriteTools` permission (`PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS`) on top of `auth_personalAccessToken_create`.
+* `PersonalAccessTokenFacade::createGranted()`, used by the management API, answers 422 on `readTools` or `writeTools` for a tool whose mapped permission the creator does not hold. The console command uses `create()`, which checks the configuration only.
+* New `GET personal-access-token/tools` route (`auth_personal_access_token_get_tools`), allowed with `auth_personalAccessToken_create`, returns the MCP tools the current user may grant, with `writeTool`, `category` and `explicitGrant`.
+* A read tool declared with `#[AsMcpTool(explicitGrant: true)]` is not part of `readTools: null`; a token gets it only when `readTools` names it. The tools route marks it with `explicitGrant: true`, so a creation form can leave it out of "every read tool" and send a list when the user picks it.
+* `PersonalAccessTokenAuthenticator` puts a common-bundle `McpToolScope` on the security token under `TOOL_SCOPE_ATTRIBUTE`. The new `PersonalAccessTokenToolScopeProvider` is registered as common-bundle's `McpToolScopeProviderInterface`, so the MCP server hides and refuses the other tools. It throws a `LogicException` when the attribute is not a `McpToolScope`.
+* `anzu:personal-access-token:create` takes `--write-tool`, `--read-tool` and `--no-read-tools`.
+* New `anzu:personal-access-token:list <userId>` and `anzu:personal-access-token:revoke <id>` commands, so an operator can find and revoke a token of any user.
+* `PersonalAccessTokenVoter` denies every `auth_personalAccessToken_*` permission to a request authenticated by a personal access token, a super admin included, so a token limited to some tools cannot create a token with more tools, nor read or revoke other tokens.
+
+### Changes
+* The bundle no longer requires `doctrine/common`, which Doctrine marked abandoned; it never used it. `anzusystems/serializer-bundle` 7.1 dropped it as well. An application that uses `Doctrine\Common\Util\ClassUtils` and got `doctrine/common` only through these bundles must replace it.
+* After a rollback to a version without `readTools`, a token with narrowed read tools sees every read tool its user may use until the new version is back.
+* BC change: the authentication cache is gone, `PersonalAccessTokenAuthenticator` reads the token from the database on every request, so a revocation applies at once. `PersonalAccessTokenAuthCache`, `CachedPersonalAccessToken` and the `personal_access_token.auth_cache_pool` option are removed; remove the option and the pool from the host config.
+* BC change: `PersonalAccessTokenFacade` requires `PersonalAccessTokenToolResolver` (autowired); code constructing it by hand has to change.
+* BC change: the `personal_access_token.user_entity_class` option is gone. The user class comes from the common-bundle `settings.user_entity_class`; remove the option from the host config.
+* BC change: `tokenHash` is unique through the mapped superclass, so a host removes its own `UniqueConstraint` on `tokenHash` and renames the index with a migration.
+* BC change: `anzusystems/common-bundle` requirement raised to `^12.0` (`McpToolScope`, `getWriteToolNames()`, `getPermittedToolNames()`, `getToolCategory()` and `McpToolDefinition::$explicitGrant`).
+* BC change: the bundle requires PHP 8.5, as `anzusystems/common-bundle` on this release line does.
+
 ## [5.2.1](https://github.com/anzusystems/auth-bundle/compare/5.2.0...5.2.1) (2026-09-16)
 
 ### Security

@@ -12,7 +12,6 @@ use DateTimeImmutable;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\Order;
-use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -30,9 +29,6 @@ final class PersonalAccessTokenRepository extends AbstractAnzuRepository
         parent::__construct($registry);
     }
 
-    /**
-     * @throws NonUniqueResultException
-     */
     public function findOneActiveByTokenHash(string $tokenHash): ?AbstractPersonalAccessToken
     {
         return $this->createQueryBuilder('personalAccessToken')

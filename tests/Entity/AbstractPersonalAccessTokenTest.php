@@ -21,11 +21,12 @@ final class AbstractPersonalAccessTokenTest extends TestCase
         self::assertSame($hash, AbstractPersonalAccessToken::hashToken($plainToken));
     }
 
-    public function testNewTokenIsNotRevokedAndHasDefaultExpiry(): void
+    public function testNewTokenIsNotRevokedIsReadOnlyAndHasDefaultExpiry(): void
     {
         $personalAccessToken = new PersonalAccessToken();
 
         self::assertFalse($personalAccessToken->isRevoked());
+        self::assertSame([], $personalAccessToken->getWriteTools());
         self::assertGreaterThan(new DateTimeImmutable('+1 month'), $personalAccessToken->getExpiresAt());
         self::assertLessThanOrEqual(new DateTimeImmutable(AbstractPersonalAccessToken::MAX_EXPIRES_AT_DATE), $personalAccessToken->getExpiresAt());
     }

@@ -43,7 +43,6 @@ final class JwtUtil
             throw MissingConfigurationException::createForPrivateCertPath();
         }
 
-        /** @psalm-var non-empty-string $authId */
         $builder = (new Builder(new JoseEncoder(), ChainedFormatter::withUnixTimestampDates()))
             ->permittedFor($this->jwtConfiguration->getAudience())
             ->issuedAt(new DateTimeImmutable())
@@ -51,7 +50,6 @@ final class JwtUtil
             ->expiresAt($expiresAt ?: new DateTimeImmutable(sprintf('+%d seconds', $this->jwtConfiguration->getLifetime())))
             ->relatedTo($authId);
 
-        /** @psalm-var non-empty-string $key */
         foreach ($claims as $key => $value) {
             $builder = $builder->withClaim($key, $value);
         }
@@ -66,7 +64,6 @@ final class JwtUtil
 
     public function validate(Token\Plain $token): bool
     {
-        /** @psalm-var non-empty-string $subject */
         $subject = (string) $token->claims()
             ->get(RegisteredClaims::SUBJECT);
 

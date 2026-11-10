@@ -77,11 +77,11 @@ Script used to run the coding style fixer:
 
     bin/ecs
 
-## PSALM - Static analyses
+## PHPStan - Static analyses
 
 Script used to run the static analyses:
 
-    bin/psalm
+    bin/phpstan
 
 ## Security
 
@@ -91,9 +91,13 @@ Script used to run the security check inside the docker container:
 
 ## Test
 
-Script used to run Unit tests inside the docker container:
+Script used to run the tests inside the docker container:
 
     bin/test
+
+The controller tests boot `tests/AnzuTestKernel.php` and need no other service: `tests/bootstrap.php` recreates an
+SQLite database with the fixtures in `var/cache` before every run. A single class runs with
+`bin/test --filter=PersonalAccessTokenControllerTest`.
 
 
 [docker-compose-overview]: https://docs.docker.com/compose/reference/overview

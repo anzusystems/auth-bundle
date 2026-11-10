@@ -72,7 +72,7 @@ $routes
 ## Personal access tokens
 
 Opt-in personal access token (PAT) authentication: an sha256-hashed bearer token bound to a user, with optional expiration,
-revocation, cached authentication, expiry notifications and management API. Disabled by default — a project that does
+revocation, expiry notifications and management API. Disabled by default — a project that does
 not enable it needs no schema or configuration changes after a bundle upgrade.
 
 Enable it by subclassing the mapped superclass and pointing the config to it:
@@ -85,7 +85,6 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: PersonalAccessTokenRepository::class)]
 #[ORM\Table(name: 'personal_access_token')]
 #[ORM\Index(name: 'IDX_revokedAt_expiresAt', fields: ['revokedAt', 'expiresAt'])]
-#[ORM\UniqueConstraint(name: 'UNIQ_tokenHash', fields: ['tokenHash'])]
 class PersonalAccessToken extends AbstractPersonalAccessToken
 {
 }
@@ -96,15 +95,12 @@ anzu_systems_auth:
   personal_access_token:
     enabled: true
     entity_class: App\Domain\PersonalAccessToken\Entity\PersonalAccessToken
-    user_entity_class: App\Domain\User\Entity\User
-    auth_cache_pool: 'some_redis.cache'
 ```
 
 The `user` relation targets `AnzuSystems\Contracts\Entity\AnzuUser` — make sure doctrine
 `resolve_target_entities` maps it to the project user class. Add the doctrine mapping for the bundle's `Entity`
-namespace and generate the migration with `doctrine:migrations:diff`. `user_entity_class` must name the same class
-as the common-bundle `settings.user_entity_class` — the authenticator and `CurrentAnzuUserProvider` would otherwise
-load different user classes. The entity relies on constructor-less proxies, so use doctrine/orm 3 (lazy ghosts);
+namespace and generate the migration with `doctrine:migrations:diff`. The user class comes from the common-bundle
+`settings.user_entity_class`. The entity relies on constructor-less proxies, so use doctrine/orm 3 (lazy ghosts);
 the ORM 2 legacy proxy strategy conflicts with the final entity constructor.
 
 Wire the authenticator into a firewall protecting the API that accepts the tokens:
@@ -121,7 +117,7 @@ security:
         - AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator
 ```
 
-Management API routes (list/create/revoke) are provided by
+Management API routes (list/create/revoke/tools) are provided by
 `AnzuSystems\AuthBundle\Controller\Api\PersonalAccessTokenController` attribute routes — import them with a prefix:
 
 ```php
@@ -130,21 +126,89 @@ $routes
     ->prefix('/api/adm/v1');
 ```
 
-Authorization uses the `auth_personalAccessToken_(create|read|revoke)` permissions (see
+Authorization uses the `auth_personalAccessToken_(create|createWithWriteTools|read|revoke)` permissions (see
 `AnzuSystems\AuthBundle\Security\PersonalAccessTokenPermission`); creation additionally requires the role
-configured via `create_role` (default `ROLE_MCP`).
+configured via `create_role` (default `ROLE_MCP`). A request authenticated by a personal access token never manages
+tokens, a super admin included: all four permissions are denied, so a scoped token cannot create a wider one.
+
+Declare these permissions in the host's common-bundle permission config (`anzu_systems_common.permissions.config`),
+together with their translations, so the admin can grant them. Without the declaration the admin cannot grant them,
+and `auth_personalAccessToken_createWithWriteTools` stays with super admins, who hold every permission checked through
+`AbstractVoter` implicitly:
+
+```yaml
+anzu_systems_common:
+  permissions:
+    config:
+      auth_personalAccessToken:
+        read:
+        create:
+        createWithWriteTools:
+        revoke:
+    translation:
+      subjects:
+        auth_personalAccessToken:
+          en: Personal access token
+          sk: Osobný prístupový token
+      actions:
+        createWithWriteTools:
+          en: Create with write tools
+          sk: Vytvor so zápisovými nástrojmi
+        revoke:
+          en: Revoke
+          sk: Zruš
+```
+
+Add `read` and `create` to `translation.actions` as well if the host does not translate them yet.
+
+Every token says which MCP tools it may use, fixed at creation, in two separate lists:
+
+* `writeTools` (`AbstractPersonalAccessToken::getWriteTools()`): the write tools, stored in the nullable JSON column
+  `write_tools`. An empty list is a read-only token, and so is `NULL` in the column.
+* `readTools` (`getReadTools()`): the read tools, stored in the nullable JSON column `read_tools`. `null` keeps every
+  read tool the user may use, also ones added later, and `[]` gives none. A tool declared with
+  `#[AsMcpTool(explicitGrant: true)]` is never part of `null`: the token gets it only when `readTools` names it.
+
+A token never gets more than its user: the tool permission is checked again on every call. An MCP preview tool
+(`#[AsMcpTool(previewOf: …)]`) is never listed: a token gets it together with its write tool.
+
+Every name must be a tool of the right kind in the common-bundle MCP configuration and may be listed once, otherwise
+creation fails validation on that field. In an application without MCP enabled every name fails. The console command
+relies on this check only and does not look at the user's permissions.
+
+The management API also checks the creator: `POST <prefix>/personal-access-token` (`PersonalAccessTokenFacade::createGranted()`)
+answers 422 on `readTools` or `writeTools` for a tool whose mapped permission the creator does not hold. A token with at
+least one write tool additionally requires `auth_personalAccessToken_createWithWriteTools`, which super admins hold
+implicitly, otherwise the answer is 403. `GET <prefix>/personal-access-token/tools` (allowed with
+`auth_personalAccessToken_create`) returns the tools the current user may grant as
+`[{"name": "example_read", "writeTool": false, "category": "examples", "explicitGrant": false}, …]`, so a
+creation form can offer them. A tool with `explicitGrant: true` reaches a token only by name, so a form that offers
+"every read tool" as `readTools: null` leaves it out and sends a list when the user picks it. `category` is the
+category of the tool from `#[AsMcpTool(category: …)]`, camelCase, so a client can build a translation key from it; the items come in the order of `McpToolAccessChecker::getPermittedToolNames()`, not grouped by category.
+
+The authenticator puts a common-bundle `McpToolScope` on the security token
+(`PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE`), and `PersonalAccessTokenToolScopeProvider` is registered as
+common-bundle's `McpToolScopeProviderInterface`, so the MCP server hides and refuses the other tools. A JWT or session
+has no scope, so it gets no write tool, a super admin included.
 
 Deleting a user: call `PersonalAccessTokenFacade::deleteByUser($user)` before removing the user entity — it deletes the
-user's tokens in one flush and invalidates their auth cache entries. The `user` join column also declares `onDelete: CASCADE`,
+user's tokens in one flush. The `user` join column also declares `onDelete: CASCADE`,
 but that is best-effort only: the `created_by`/`modified_by` columns of the user's own tokens still reference the user, so
 the explicit `deleteByUser()` call is the contract.
 
 Console commands:
 
-* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires]` —
+* `anzu:personal-access-token:create <userId> --name=<label> [--expires-at=...] [--never-expires] [--write-tool=<name> ...] [--read-tool=<name> ... | --no-read-tools]` —
   prints the plaintext token once. `--never-expires` creates a token with `expiresAt = NULL` (skipped by the expiry
   notifications, mutually exclusive with `--expires-at`). It is command-only — the management API never sets it, so a
-  never-expiring token can only be issued deliberately for a system user (e.g. a service integration).
+  never-expiring token can only be issued deliberately for a system user (e.g. a service integration). `--write-tool`
+  is repeatable, one write tool per option; without it the token is read only. `--read-tool` is repeatable too; without
+  it the token keeps every read tool its user may use except the `explicitGrant` ones, and `--no-read-tools` gives it
+  none. The command prints the granted tools.
+* `anzu:personal-access-token:list <userId>` — lists a user's tokens with id, status, dates and tools, never the token
+  itself.
+* `anzu:personal-access-token:revoke <id>` — revokes a token of any user, it stops working at once. A token already
+  revoked stays as it is.
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

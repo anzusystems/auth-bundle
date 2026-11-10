@@ -36,8 +36,8 @@ final class AnzuTestKernel extends AnzuKernel
 
     protected function configureContainer(ContainerConfigurator $container): void
     {
-        $container->import(__DIR__ . '/config/{packages}/*.yaml');
-        $container->import(__DIR__ . '/config/{packages}/' . $this->environment . '/*.yaml');
+        $container->import(__DIR__ . '/config/{packages}/*.php');
+        $container->import(__DIR__ . '/config/{packages}/' . $this->environment . '/*.php');
         $container->import(__DIR__ . '/config/{services}/*.php');
     }
 

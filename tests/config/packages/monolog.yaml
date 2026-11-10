@@ -1,4 +1,0 @@
-monolog:
-    handlers:
-        main:
-            type: 'null'

@@ -1,0 +1,21 @@
+security:
+    providers:
+        user_by_id:
+            entity:
+                class: AnzuSystems\AuthBundle\Tests\Data\Entity\User
+                property: id
+    firewalls:
+        auth:
+            pattern: ^/auth/
+            security: false
+        token_api:
+            pattern: ^/token-api/
+            stateless: true
+            provider: user_by_id
+            custom_authenticators:
+                - AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator
+        main:
+            stateless: true
+            provider: user_by_id
+            custom_authenticators:
+                - AnzuSystems\AuthBundle\Security\Authentication\JwtAuthentication

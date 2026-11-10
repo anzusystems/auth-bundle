@@ -1,0 +1,3 @@
+anzu_systems_serializer:
+    parameter_bag:
+        AnzuSystems\Contracts\Entity\AnzuUser: AnzuSystems\AuthBundle\Tests\Data\Entity\User

@@ -12,6 +12,7 @@
 * `PersonalAccessTokenVoter` denies every `auth_personalAccessToken_*` permission to a request authenticated by a personal access token, a super admin included, so a token limited to some tools cannot create a token with more tools, nor read or revoke other tokens.
 
 ### Changes
+* The bundle no longer requires `doctrine/common`, which Doctrine marked abandoned; it never used it. `anzusystems/serializer-bundle` 7.1 dropped it as well. An application that uses `Doctrine\Common\Util\ClassUtils` and got `doctrine/common` only through these bundles must replace it.
 * After a rollback to a version without `readTools`, a token with narrowed read tools sees every read tool its user may use until the new version is back.
 * BC change: the authentication cache is gone, `PersonalAccessTokenAuthenticator` reads the token from the database on every request, so a revocation applies at once. `PersonalAccessTokenAuthCache`, `CachedPersonalAccessToken` and the `personal_access_token.auth_cache_pool` option are removed; remove the option and the pool from the host config.
 * BC change: `PersonalAccessTokenFacade` requires `PersonalAccessTokenToolResolver` (autowired); code constructing it by hand has to change.

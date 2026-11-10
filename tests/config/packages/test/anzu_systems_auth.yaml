@@ -1,0 +1,10 @@
+anzu_systems_auth:
+    authorization:
+        enabled: true
+        type: json_credentials
+        refresh_token:
+            storage:
+                custom:
+                    service_id: AnzuSystems\AuthBundle\Tests\Data\RefreshTokenStorage\InMemoryRefreshTokenStorage
+        auth_redirect_default_url: 'http://localhost/default-redirect'
+        auth_redirect_query_url_allowed_pattern: '^http://localhost/allowed/'

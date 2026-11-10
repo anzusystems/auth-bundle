@@ -1,0 +1,32 @@
+security:
+    password_hashers:
+        AnzuSystems\AuthBundle\Tests\Data\Entity\User: plaintext
+    providers:
+        user_by_id:
+            entity:
+                class: AnzuSystems\AuthBundle\Tests\Data\Entity\User
+                property: id
+        user_by_email:
+            entity:
+                class: AnzuSystems\AuthBundle\Tests\Data\Entity\User
+                property: email
+    firewalls:
+        auth:
+            pattern: ^/auth/
+            stateless: true
+            provider: user_by_email
+            json_login:
+                check_path: auth_login
+                success_handler: AnzuSystems\AuthBundle\Security\AuthenticationSuccessHandler
+                failure_handler: AnzuSystems\AuthBundle\Security\AuthenticationFailureHandler
+        token_api:
+            pattern: ^/token-api/
+            stateless: true
+            provider: user_by_id
+            custom_authenticators:
+                - AnzuSystems\AuthBundle\Security\Authentication\PersonalAccessTokenAuthenticator
+        main:
+            stateless: true
+            provider: user_by_id
+            custom_authenticators:
+                - AnzuSystems\AuthBundle\Security\Authentication\JwtAuthentication

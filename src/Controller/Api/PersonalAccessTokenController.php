@@ -83,13 +83,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
             $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
         }
         AuditLogResourceHelper::excludeFromAuditLogs($request);
-        $result = $this->personalAccessTokenFacade->createGranted(
-            user: $this->getUser(),
-            name: $dto->getName(),
-            expiresAt: $dto->getExpiresAt(),
-            writeTools: $dto->getWriteTools(),
-            readTools: $dto->getReadTools(),
-        );
+        $result = $this->personalAccessTokenFacade->createGranted($this->getUser(), $dto);
         $this->logger->info('Personal access token created.', [
             'resource' => $result->personalAccessToken::getResourceName(),
             'personalAccessTokenId' => $result->personalAccessToken->getId(),

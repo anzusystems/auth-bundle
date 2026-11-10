@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateDto;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
@@ -38,25 +39,17 @@ final readonly class PersonalAccessTokenFacade
      * The tools are checked against the permissions of the logged-in user, not of $user: call it only for a user
      * creating their own token. create() checks only that each name is a known read or write tool.
      *
-     * @param array<string> $writeTools
-     * @param array<string>|null $readTools
-     *
      * @throws ValidationException
      * @throws RandomException
      */
-    public function createGranted(
-        AnzuUser $user,
-        string $name,
-        ?DateTimeImmutable $expiresAt = null,
-        array $writeTools = [],
-        ?array $readTools = null,
-    ): PersonalAccessTokenCreateResult {
+    public function createGranted(AnzuUser $user, PersonalAccessTokenCreateDto $dto): PersonalAccessTokenCreateResult
+    {
         $grantableToolNames = $this->toolResolver->resolveGrantableToolNames();
         $exception = new ValidationException();
-        if ($this->hasUngrantableTool($readTools ?? [], $grantableToolNames)) {
+        if ($this->hasUngrantableTool($dto->getReadTools() ?? [], $grantableToolNames)) {
             $exception->addFormattedError(self::FIELD_READ_TOOLS, ValidationException::ERROR_FIELD_INVALID);
         }
-        if ($this->hasUngrantableTool($writeTools, $grantableToolNames)) {
+        if ($this->hasUngrantableTool($dto->getWriteTools(), $grantableToolNames)) {
             $exception->addFormattedError(self::FIELD_WRITE_TOOLS, ValidationException::ERROR_FIELD_INVALID);
         }
         if (false === empty($exception->getFormattedErrors())) {
@@ -65,10 +58,10 @@ final readonly class PersonalAccessTokenFacade
 
         return $this->create(
             user: $user,
-            name: $name,
-            expiresAt: $expiresAt,
-            writeTools: $writeTools,
-            readTools: $readTools,
+            name: $dto->getName(),
+            expiresAt: $dto->getExpiresAt(),
+            writeTools: $dto->getWriteTools(),
+            readTools: $dto->getReadTools(),
         );
     }
 

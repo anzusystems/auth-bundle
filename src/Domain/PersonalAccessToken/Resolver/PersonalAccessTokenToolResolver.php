@@ -58,7 +58,10 @@ final readonly class PersonalAccessTokenToolResolver
 
         $toolNames = $toolAccessChecker->getPermittedToolNames();
         if (false === $withWriteTools) {
-            $toolNames = array_diff($toolNames, $toolDefinitions->getWriteToolNames()) |> array_values(...);
+            $toolNames = array_filter(
+                $toolNames,
+                static fn (string $toolName): bool => false === $toolAccessChecker->isWriteTool($toolName),
+            ) |> array_values(...);
         }
 
         return array_map(

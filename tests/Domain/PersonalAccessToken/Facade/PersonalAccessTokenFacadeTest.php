@@ -6,6 +6,7 @@ namespace AnzuSystems\AuthBundle\Tests\Domain\PersonalAccessToken\Facade;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateDto;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
@@ -153,10 +154,11 @@ final class PersonalAccessTokenFacadeTest extends TestCase
     public function testCreateGrantedStoresToolsTheUserMayUse(): void
     {
         $result = $this->facade->createGranted(
-            user: $this->createConfiguredStub(AnzuUser::class, []),
-            name: 'test-token',
-            writeTools: [self::WRITE_TOOL],
-            readTools: [self::READ_TOOL],
+            $this->createConfiguredStub(AnzuUser::class, []),
+            new PersonalAccessTokenCreateDto()
+                ->setName('test-token')
+                ->setWriteTools([self::WRITE_TOOL])
+                ->setReadTools([self::READ_TOOL]),
         );
 
         self::assertSame([self::WRITE_TOOL], $result->personalAccessToken->getWriteTools());
@@ -176,10 +178,11 @@ final class PersonalAccessTokenFacadeTest extends TestCase
     ): void {
         try {
             $this->facade->createGranted(
-                user: $this->createConfiguredStub(AnzuUser::class, []),
-                name: 'test-token',
-                writeTools: $writeTools,
-                readTools: $readTools,
+                $this->createConfiguredStub(AnzuUser::class, []),
+                new PersonalAccessTokenCreateDto()
+                    ->setName('test-token')
+                    ->setWriteTools($writeTools)
+                    ->setReadTools($readTools),
             );
             self::fail('Expected ' . ValidationException::class);
         } catch (ValidationException $exception) {
@@ -238,6 +241,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
         $revoked = $this->facade->revoke($result->personalAccessToken);
         $revokedAt = $revoked->getRevokedAt();
 
+        self::assertTrue($revoked->isRevoked());
         self::assertSame($revokedAt, $this->facade->revoke($revoked)->getRevokedAt());
     }
 }

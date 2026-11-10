@@ -28,7 +28,6 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 final class CreatePersonalAccessTokenCommand extends Command
 {
     private const string LIST_SEPARATOR = ', ';
-    private const string WRITE_TOOLS_NONE = 'none, the token is read only';
     public const string TOOLS_NONE = 'none';
     public const string READ_TOOLS_UNRESTRICTED = 'all the user may use, except tools granted only by name';
     private const string EXPIRES_AT_NEVER = 'never';
@@ -153,7 +152,7 @@ final class CreatePersonalAccessTokenCommand extends Command
     private function formatWriteTools(array $writeTools): string
     {
         if (empty($writeTools)) {
-            return self::WRITE_TOOLS_NONE;
+            return self::TOOLS_NONE;
         }
 
         return implode(self::LIST_SEPARATOR, $writeTools);

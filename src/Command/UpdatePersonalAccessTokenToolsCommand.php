@@ -29,6 +29,8 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
     public const string MESSAGE_NOTHING_CHANGED = 'Nothing changed.';
     public const string MESSAGE_REMOVED_WHEN_SAVED = 'Not among the tools the owner may grant, removed when saved: %s';
     public const string MESSAGE_NOT_ACTIVE = 'Token %d "%s" is revoked or expired, its tools cannot be changed.';
+    public const string MESSAGE_NO_TOOL_OPTION = 'Name the tools with --read-tool, --explicit-read-tool, --write-tool, --no-read-tools or --all-read-tools, or run the command in a terminal.';
+    public const string MESSAGE_EXCLUSIVE_READ_OPTIONS = 'Options --read-tool, --no-read-tools and --all-read-tools are mutually exclusive.';
     public const string QUESTION_SAVE = 'Save the new tools?';
     public const string READ_SCOPE_ALL = 'all';
     public const string READ_SCOPE_SELECTED = 'selected';
@@ -86,8 +88,10 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
             name: 'explicit-read-tool',
         )]
         array $explicitReadTools = [],
-        #[Option(description: 'Give the token no read tool (mutually exclusive with --read-tool).')]
+        #[Option(description: 'Give the token no read tool (mutually exclusive with --read-tool and --all-read-tools).')]
         bool $noReadTools = false,
+        #[Option(description: 'Give the token every read tool its user may use, except the tools granted only by name (mutually exclusive with --read-tool and --no-read-tools).')]
+        bool $allReadTools = false,
     ): int {
         AnzuApp::throwOnReadOnlyMode();
 
@@ -97,8 +101,9 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
 
             return self::FAILURE;
         }
-        if ($noReadTools && false === empty($readTools)) {
-            $io->writeln('<error>Options --read-tool and --no-read-tools are mutually exclusive.</error>');
+        $readOptions = array_filter([$noReadTools, $allReadTools, false === empty($readTools)]);
+        if (count($readOptions) > 1) {
+            $io->writeln(sprintf('<error>%s</error>', self::MESSAGE_EXCLUSIVE_READ_OPTIONS));
 
             return self::FAILURE;
         }
@@ -112,10 +117,16 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
         }
 
         $hasToolOption = $noReadTools
+            || $allReadTools
             || false === empty($writeTools)
             || false === empty($readTools)
             || false === empty($explicitReadTools);
-        if ($input->isInteractive() && false === $hasToolOption) {
+        if (false === $hasToolOption) {
+            if (false === $input->isInteractive()) {
+                $io->writeln(sprintf('<error>%s</error>', self::MESSAGE_NO_TOOL_OPTION));
+
+                return self::FAILURE;
+            }
             if ($token->isRevoked() || $token->isExpired()) {
                 $io->writeln(sprintf('<error>' . self::MESSAGE_NOT_ACTIVE . '</error>', $id, $token->getName()));
 
@@ -264,9 +275,9 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
     private function askReadTools(SymfonyStyle $io, ?array $readTools, array $readOffer): ?array
     {
         $scope = $io->choice(
-            self::QUESTION_READ_SCOPE,
-            self::READ_SCOPES,
-            $this->resolveReadScope($readTools, $readOffer),
+            question: self::QUESTION_READ_SCOPE,
+            choices: self::READ_SCOPES,
+            default: $this->resolveReadScope($readTools, $readOffer),
         );
         if (self::READ_SCOPE_ALL === $scope) {
             return null;
@@ -301,6 +312,7 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
 
     /**
      * The first choice is "none": a multiselect question takes no empty answer.
+     * The default answer names the choices by their numbers: the prompt of a multiselect question reads only those.
      *
      * @param list<string> $offer
      * @param list<string> $currentTools
@@ -313,15 +325,16 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
             return [];
         }
 
-        $offeredCurrentTools = array_intersect($offer, $currentTools);
+        $choices = [CreatePersonalAccessTokenCommand::TOOLS_NONE, ...$offer];
+        $currentChoiceNumbers = array_intersect($choices, $currentTools) |> array_keys(...);
         $default = CreatePersonalAccessTokenCommand::TOOLS_NONE;
-        if (false === empty($offeredCurrentTools)) {
-            $default = implode(self::CHOICE_SEPARATOR, $offeredCurrentTools);
+        if (false === empty($currentChoiceNumbers)) {
+            $default = implode(self::CHOICE_SEPARATOR, $currentChoiceNumbers);
         }
         /** @var list<string> $answer */
         $answer = $io->choice(
             question: sprintf(self::QUESTION_TOOLS_FORMAT, $label),
-            choices: [CreatePersonalAccessTokenCommand::TOOLS_NONE, ...$offer],
+            choices: $choices,
             default: $default,
             multiSelect: true,
         );

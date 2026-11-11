@@ -228,16 +228,18 @@ Console commands:
   itself.
 * `anzu:personal-access-token:revoke <id>` — revokes a token of any user, it stops working at once. A token already
   revoked stays as it is.
-* `anzu:personal-access-token:update-tools <id> [--write-tool=<name> ...] [--read-tool=<name> ... | --no-read-tools] [--explicit-read-tool=<name> ...]` —
+* `anzu:personal-access-token:update-tools <id> [--write-tool=<name> ...] [--read-tool=<name> ... | --no-read-tools | --all-read-tools] [--explicit-read-tool=<name> ...]` —
   replaces the three tool lists of a token of any user. Without `--read-tool` and `--no-read-tools` `readTools` becomes
   `null`, without `--explicit-read-tool` the token loses its `explicitGrant` tools, without `--write-tool` it becomes
-  read only. Unlike `create` it checks the permissions of the owner of the token, and it refuses a revoked or expired
+  read only. `--all-read-tools` sets `readTools` to `null` by name, so it is the only option needed for a token with
+  every read tool and nothing else; it is mutually exclusive with `--read-tool` and `--no-read-tools`. Unlike `create` it checks the permissions of the owner of the token, and it refuses a revoked or expired
   token. It prints the previous and the new tools. Run in a terminal without any of these options, it shows the token,
   offers the tools the owner may grant and asks for the read tools (`all`, `selected` or `none`), the explicit read
   tools and the write tools, with the current choice as the default answer. A list is answered with numbers or names
   separated by a comma, `none` for an empty one. A tool the token holds and the owner may no longer grant is listed and
-  removed when saved. The command shows the change and saves it after a confirmation. With `--no-interaction` and no
-  option it sets `readTools` to `null` and the other two lists to `[]`.
+  removed when saved. The command shows the change and saves it after a confirmation. Run without any
+  of these options where it cannot ask (`--no-interaction`, `--quiet`, or no terminal, such as a cron job or a pipe),
+  it saves nothing and fails with a message that names the options.
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

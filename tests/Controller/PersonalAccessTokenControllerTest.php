@@ -10,6 +10,7 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessT
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Tests\Data\Fixtures\UserFixtures;
 use AnzuSystems\AuthBundle\Tests\Data\Mcp\ExampleTool;
+use AnzuSystems\AuthBundle\Tests\LogAssertionsTrait;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
 {
+    use LogAssertionsTrait;
+
     private const string URI = '/personal-access-token';
     private const string TOOLS_URI = self::URI . '/tools';
     private const string REVOKE_URI_FORMAT = self::URI . '/%d/revoke';
@@ -31,6 +34,7 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
     private const string STATE_EXPIRED = 'expired';
     private const string TOKEN_NAME = 'Example token';
     private const string SERIALIZER_ERROR = 'serializer_error';
+    private const string UNKNOWN_TOOL = 'example_unknown';
     private const int NON_EXISTENT_TOKEN_ID = 999_999;
 
     /**
@@ -180,7 +184,7 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
             ['writeTools' => [ValidationException::ERROR_FIELD_INVALID]],
         ];
         yield 'an unknown tool' => [
-            ['name' => self::TOKEN_NAME, 'readTools' => ['example_unknown']],
+            ['name' => self::TOKEN_NAME, 'readTools' => [self::UNKNOWN_TOOL]],
             ['readTools' => [ValidationException::ERROR_FIELD_INVALID]],
         ];
         yield 'a write tool among the read tools' => [
@@ -409,6 +413,17 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
         self::assertSame(self::TOKEN_NAME, $storedToken->getName());
         self::assertSame($expiresAt?->getTimestamp(), $storedToken->getExpiresAt()?->getTimestamp());
         self::assertGreaterThan($modifiedAt, $storedToken->getModifiedAt());
+        $this->assertInfoLoggedOnce(PersonalAccessTokenFacade::LOG_MESSAGE_TOOLS_UPDATED, [
+            'resource' => $personalAccessToken::getResourceName(),
+            'personalAccessTokenId' => $tokenId,
+            'userId' => $userId,
+            'previousReadTools' => $readTools,
+            'previousExplicitReadTools' => $explicitReadTools,
+            'previousWriteTools' => $writeTools,
+            'readTools' => $expectedReadTools,
+            'explicitReadTools' => $expectedExplicitReadTools,
+            'writeTools' => $expectedWriteTools,
+        ]);
     }
 
     /**
@@ -537,13 +552,21 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
     #[DataProvider('updateToolsForbiddenDataProvider')]
     public function testUpdateToolsIsForbidden(int $ownerId, int $userId, array $payload): void
     {
-        $tokenId = (int) $this->createToken($ownerId, [ExampleTool::WRITE], [ExampleTool::READ])->personalAccessToken->getId();
+        $tokenId = (int) $this->createToken(
+            userId: $ownerId,
+            writeTools: [ExampleTool::WRITE],
+            readTools: [ExampleTool::READ],
+        )->personalAccessToken->getId();
         $this->loginUser($userId);
 
         $this->requestJson(Request::METHOD_PUT, sprintf(self::UPDATE_TOOLS_URI_FORMAT, $tokenId), $payload);
 
         self::assertResponseStatusCodeSame(Response::HTTP_FORBIDDEN);
-        $this->assertStoredTools($tokenId, [ExampleTool::WRITE], [ExampleTool::READ]);
+        $this->assertStoredTools(
+            tokenId: $tokenId,
+            expectedWriteTools: [ExampleTool::WRITE],
+            expectedReadTools: [ExampleTool::READ],
+        );
     }
 
     /**
@@ -583,7 +606,11 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
     #[DataProvider('updateToolsValidationDataProvider')]
     public function testUpdateToolsValidation(array $states, array $payload, array $expectedValidationErrors): void
     {
-        $personalAccessToken = $this->createToken(UserFixtures::TOKEN_MANAGER_ID, [ExampleTool::WRITE], [ExampleTool::READ])->personalAccessToken;
+        $personalAccessToken = $this->createToken(
+            userId: UserFixtures::TOKEN_MANAGER_ID,
+            writeTools: [ExampleTool::WRITE],
+            readTools: [ExampleTool::READ],
+        )->personalAccessToken;
         if (in_array(needle: self::STATE_REVOKED, haystack: $states, strict: true)) {
             $personalAccessToken->setRevokedAt(new DateTimeImmutable(self::REVOKED_AT));
         }
@@ -598,7 +625,11 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         $this->assertValidationErrors($response, $expectedValidationErrors);
-        $this->assertStoredTools($tokenId, [ExampleTool::WRITE], [ExampleTool::READ]);
+        $this->assertStoredTools(
+            tokenId: $tokenId,
+            expectedWriteTools: [ExampleTool::WRITE],
+            expectedReadTools: [ExampleTool::READ],
+        );
     }
 
     /**
@@ -648,7 +679,7 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
         ];
         yield 'an unknown tool' => [
             [],
-            ['readTools' => ['example_unknown'], 'writeTools' => []],
+            ['readTools' => [self::UNKNOWN_TOOL], 'writeTools' => []],
             ['readTools' => [ValidationException::ERROR_FIELD_INVALID]],
         ];
         yield 'a write tool among the read tools' => [
@@ -673,7 +704,7 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
         ];
         yield 'an unknown explicit read tool' => [
             [],
-            ['readTools' => [], 'explicitReadTools' => ['example_unknown'], 'writeTools' => []],
+            ['readTools' => [], 'explicitReadTools' => [self::UNKNOWN_TOOL], 'writeTools' => []],
             ['explicitReadTools' => [ValidationException::ERROR_FIELD_INVALID]],
         ];
         yield 'an explicit read tool listed twice' => [
@@ -705,7 +736,11 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
 
         self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertSame(self::SERIALIZER_ERROR, $response['error']);
-        $this->assertStoredTools($tokenId, [ExampleTool::WRITE], [ExampleTool::READ]);
+        $this->assertStoredTools(
+            tokenId: $tokenId,
+            expectedWriteTools: [ExampleTool::WRITE],
+            expectedReadTools: [ExampleTool::READ],
+        );
         self::assertSame([ExampleTool::EXPLICIT_READ], $this->getStoredToken($tokenId)->getExplicitReadTools());
     }
 
@@ -729,7 +764,7 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
         if (Response::HTTP_UNPROCESSABLE_ENTITY === $expectedStatusCode) {
             $this->assertValidationErrors($response, ['readTools' => [ValidationException::ERROR_FIELD_INVALID]]);
         }
-        $this->assertStoredTools($tokenId, [], $expectedReadTools);
+        $this->assertStoredTools(tokenId: $tokenId, expectedWriteTools: [], expectedReadTools: $expectedReadTools);
     }
 
     /**
@@ -764,7 +799,11 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
     #[DataProvider('routeDataProvider')]
     public function testRequestAuthenticatedByATokenCannotManageTokens(string $method, string $uriFormat, ?array $payload): void
     {
-        $token = $this->createToken(UserFixtures::TOKEN_MANAGER_ID, [ExampleTool::WRITE], [ExampleTool::READ]);
+        $token = $this->createToken(
+            userId: UserFixtures::TOKEN_MANAGER_ID,
+            writeTools: [ExampleTool::WRITE],
+            readTools: [ExampleTool::READ],
+        );
         $tokenId = (int) $token->personalAccessToken->getId();
         $this->sendBearerToken($token->token);
 

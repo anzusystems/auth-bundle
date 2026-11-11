@@ -67,12 +67,37 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
         $personalAccessToken = $this->createToken($ownerId);
 
         $this->getFacade()
-            ->updateTools($personalAccessToken, $this->createDto($readTools, $writeTools, $explicitReadTools));
+            ->updateTools($personalAccessToken, $this->createDto(
+                readTools: $readTools,
+                writeTools: $writeTools,
+                explicitReadTools: $explicitReadTools,
+            ));
 
         $storedToken = $this->getStoredToken((int) $personalAccessToken->getId());
         self::assertSame($readTools, $storedToken->getReadTools());
         self::assertSame($explicitReadTools, $storedToken->getExplicitReadTools());
         self::assertSame($writeTools, $storedToken->getWriteTools());
+    }
+
+    public function testUpdateToolsOfATokenThatNeverExpires(): void
+    {
+        $personalAccessToken = $this->getFacade()
+            ->create(user: $this->getUser(UserFixtures::TOKEN_MANAGER_ID), name: self::TOKEN_NAME, neverExpires: true)
+            ->personalAccessToken;
+        self::assertNull($personalAccessToken->getExpiresAt());
+
+        $this->getFacade()
+            ->updateTools($personalAccessToken, $this->createDto(
+                readTools: [ExampleTool::READ],
+                writeTools: [ExampleTool::WRITE],
+                explicitReadTools: [ExampleTool::EXPLICIT_READ],
+            ));
+
+        $storedToken = $this->getStoredToken((int) $personalAccessToken->getId());
+        self::assertNull($storedToken->getExpiresAt());
+        self::assertSame([ExampleTool::READ], $storedToken->getReadTools());
+        self::assertSame([ExampleTool::EXPLICIT_READ], $storedToken->getExplicitReadTools());
+        self::assertSame([ExampleTool::WRITE], $storedToken->getWriteTools());
     }
 
     /**
@@ -112,7 +137,11 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
 
         try {
             $this->getFacade()
-                ->updateTools($personalAccessToken, $this->createDto($readTools, $writeTools, $explicitReadTools));
+                ->updateTools($personalAccessToken, $this->createDto(
+                    readTools: $readTools,
+                    writeTools: $writeTools,
+                    explicitReadTools: $explicitReadTools,
+                ));
             self::fail('The update was not refused.');
         } catch (ValidationException $exception) {
             self::assertSame($expectedErrors, $exception->getFormattedErrors());
@@ -164,7 +193,11 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
     #[DataProvider('refusedUpdateDataProvider')]
     public function testRefusedUpdateLeavesTheEntityUnchanged(array $explicitReadTools, bool $expired): void
     {
-        $personalAccessToken = $this->createToken(UserFixtures::TOKEN_MANAGER_ID, [ExampleTool::WRITE], [ExampleTool::READ]);
+        $personalAccessToken = $this->createToken(
+            userId: UserFixtures::TOKEN_MANAGER_ID,
+            writeTools: [ExampleTool::WRITE],
+            readTools: [ExampleTool::READ],
+        );
         if ($expired) {
             $personalAccessToken->setExpiresAt(new DateTimeImmutable(self::EXPIRED_AT));
             $this->getEntityManager()
@@ -173,7 +206,11 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
 
         try {
             $this->getFacade()
-                ->updateTools($personalAccessToken, $this->createDto([], [], $explicitReadTools));
+                ->updateTools($personalAccessToken, $this->createDto(
+                    readTools: [],
+                    writeTools: [],
+                    explicitReadTools: $explicitReadTools,
+                ));
             self::fail('The update was not refused.');
         } catch (ValidationException) {
             self::assertSame([ExampleTool::READ], $personalAccessToken->getReadTools());

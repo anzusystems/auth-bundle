@@ -7,6 +7,8 @@ namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Manager\PersonalAccessTokenManager;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateDto;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenToolsUpdateDto;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenToolsUpdateResult;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
@@ -19,9 +21,13 @@ use Random\RandomException;
 final readonly class PersonalAccessTokenFacade
 {
     public const int TOKEN_BYTES_LENGTH = 32;
+    public const string LOG_MESSAGE_TOOLS_UPDATED = 'Personal access token tools updated.';
 
     private const string FIELD_READ_TOOLS = 'readTools';
+    private const string FIELD_EXPLICIT_READ_TOOLS = 'explicitReadTools';
     private const string FIELD_WRITE_TOOLS = 'writeTools';
+    private const string FIELD_REVOKED_AT = 'revokedAt';
+    private const string FIELD_EXPIRES_AT = 'expiresAt';
 
     /**
      * @param class-string<AbstractPersonalAccessToken> $entityClass
@@ -44,17 +50,12 @@ final readonly class PersonalAccessTokenFacade
      */
     public function createGranted(AnzuUser $user, PersonalAccessTokenCreateDto $dto): PersonalAccessTokenCreateResult
     {
-        $grantableToolNames = $this->toolResolver->resolveGrantableToolNames();
-        $exception = new ValidationException();
-        if ($this->hasUngrantableTool($dto->getReadTools() ?? [], $grantableToolNames)) {
-            $exception->addFormattedError(self::FIELD_READ_TOOLS, ValidationException::ERROR_FIELD_INVALID);
-        }
-        if ($this->hasUngrantableTool($dto->getWriteTools(), $grantableToolNames)) {
-            $exception->addFormattedError(self::FIELD_WRITE_TOOLS, ValidationException::ERROR_FIELD_INVALID);
-        }
-        if (false === empty($exception->getFormattedErrors())) {
-            throw $exception;
-        }
+        $this->validateGrantableTools(
+            readTools: $dto->getReadTools(),
+            explicitReadTools: $dto->getExplicitReadTools(),
+            writeTools: $dto->getWriteTools(),
+            grantableToolNames: $this->toolResolver->resolveGrantableToolNames(),
+        );
 
         return $this->create(
             user: $user,
@@ -62,12 +63,14 @@ final readonly class PersonalAccessTokenFacade
             expiresAt: $dto->getExpiresAt(),
             writeTools: $dto->getWriteTools(),
             readTools: $dto->getReadTools(),
+            explicitReadTools: $dto->getExplicitReadTools(),
         );
     }
 
     /**
      * @param array<string> $writeTools
      * @param array<string>|null $readTools
+     * @param array<string> $explicitReadTools
      *
      * @throws ValidationException
      * @throws RandomException
@@ -79,10 +82,11 @@ final readonly class PersonalAccessTokenFacade
         bool $neverExpires = false,
         array $writeTools = [],
         ?array $readTools = null,
+        array $explicitReadTools = [],
     ): PersonalAccessTokenCreateResult {
         if ($neverExpires && $expiresAt instanceof DateTimeImmutable) {
             throw new ValidationException()
-                ->addFormattedError('expiresAt', ValidationException::ERROR_FIELD_INVALID);
+                ->addFormattedError(self::FIELD_EXPIRES_AT, ValidationException::ERROR_FIELD_INVALID);
         }
         $plainToken = AbstractPersonalAccessToken::TOKEN_PREFIX . bin2hex(random_bytes(self::TOKEN_BYTES_LENGTH));
         $personalAccessToken = new $this->entityClass();
@@ -92,6 +96,7 @@ final readonly class PersonalAccessTokenFacade
             ->setTokenHash(AbstractPersonalAccessToken::hashToken($plainToken))
             ->setWriteTools($writeTools)
             ->setReadTools($readTools)
+            ->setExplicitReadTools($explicitReadTools)
         ;
         if ($expiresAt instanceof DateTimeImmutable) {
             $personalAccessToken->setExpiresAt($expiresAt);
@@ -121,6 +126,93 @@ final readonly class PersonalAccessTokenFacade
         }
 
         return $this->manager->revoke($personalAccessToken);
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    public function updateTools(
+        AbstractPersonalAccessToken $personalAccessToken,
+        PersonalAccessTokenToolsUpdateDto $dto,
+    ): PersonalAccessTokenToolsUpdateResult {
+        $this->validateActive($personalAccessToken);
+        $writeTools = $dto->writeTools;
+        if (null === $writeTools) {
+            throw new ValidationException()
+                ->addFormattedError(self::FIELD_WRITE_TOOLS, ValidationException::ERROR_FIELD_EMPTY);
+        }
+        $this->validateGrantableTools(
+            readTools: $dto->readTools,
+            explicitReadTools: $dto->explicitReadTools,
+            writeTools: $writeTools,
+            grantableToolNames: $this->toolResolver->resolveGrantableToolNamesForUser($personalAccessToken->getUser()),
+        );
+
+        // Validated on a copy: a refused selection left on the managed entity would be written by the next flush.
+        $newPersonalAccessToken = clone $personalAccessToken;
+        $newPersonalAccessToken
+            ->setWriteTools($writeTools)
+            ->setReadTools($dto->readTools)
+            ->setExplicitReadTools($dto->explicitReadTools)
+        ;
+        $this->validator->validate($newPersonalAccessToken, $personalAccessToken);
+
+        $previousReadTools = $personalAccessToken->getReadTools();
+        $previousExplicitReadTools = $personalAccessToken->getExplicitReadTools();
+        $previousWriteTools = $personalAccessToken->getWriteTools();
+
+        return new PersonalAccessTokenToolsUpdateResult(
+            personalAccessToken: $this->manager->updateTools($personalAccessToken, $newPersonalAccessToken),
+            previousReadTools: $previousReadTools,
+            previousExplicitReadTools: $previousExplicitReadTools,
+            previousWriteTools: $previousWriteTools,
+        );
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function validateActive(AbstractPersonalAccessToken $personalAccessToken): void
+    {
+        $exception = new ValidationException();
+        if ($personalAccessToken->isRevoked()) {
+            $exception->addFormattedError(self::FIELD_REVOKED_AT, ValidationException::ERROR_FIELD_INVALID);
+        }
+        if ($personalAccessToken->isExpired()) {
+            $exception->addFormattedError(self::FIELD_EXPIRES_AT, ValidationException::ERROR_FIELD_INVALID);
+        }
+        if (false === empty($exception->getFormattedErrors())) {
+            throw $exception;
+        }
+    }
+
+    /**
+     * @param array<mixed>|null $readTools
+     * @param array<mixed> $explicitReadTools
+     * @param array<mixed> $writeTools
+     * @param list<string> $grantableToolNames
+     *
+     * @throws ValidationException
+     */
+    private function validateGrantableTools(
+        ?array $readTools,
+        array $explicitReadTools,
+        array $writeTools,
+        array $grantableToolNames,
+    ): void {
+        $exception = new ValidationException();
+        if ($this->hasUngrantableTool($readTools ?? [], $grantableToolNames)) {
+            $exception->addFormattedError(self::FIELD_READ_TOOLS, ValidationException::ERROR_FIELD_INVALID);
+        }
+        if ($this->hasUngrantableTool($explicitReadTools, $grantableToolNames)) {
+            $exception->addFormattedError(self::FIELD_EXPLICIT_READ_TOOLS, ValidationException::ERROR_FIELD_INVALID);
+        }
+        if ($this->hasUngrantableTool($writeTools, $grantableToolNames)) {
+            $exception->addFormattedError(self::FIELD_WRITE_TOOLS, ValidationException::ERROR_FIELD_INVALID);
+        }
+        if (false === empty($exception->getFormattedErrors())) {
+            throw $exception;
+        }
     }
 
     /**

@@ -1,6 +1,30 @@
 ## Unreleased
 
 ### Features
+* Personal access tokens keep the read tools declared with `#[AsMcpTool(explicitGrant: true)]` in a list of their own, `explicitReadTools` (`list<string>`, `[]` gives none). `readTools` now holds only the other read tools, so a token can keep every read tool, also ones added later (`readTools: null`), and still get an `explicitGrant` tool by name. Add the nullable JSON column `explicit_read_tools` with a migration.
+* `POST personal-access-token` accepts `explicitReadTools`, a missing field is read as `[]`. Every response with a token returns it. A name that is not an `explicitGrant` read tool of the MCP configuration, or one whose mapped permission the creator does not hold, answers 422 on `explicitReadTools`.
+* `PersonalAccessTokenFacade::create()` takes `array $explicitReadTools = []` as its last parameter.
+* `PersonalAccessTokenAuthenticator` passes `explicitReadTools` to `McpToolScope` as `explicitToolNames`.
+* New `PersonalAccessTokenToolResolver::resolveExplicitReadToolNames()`, and the `explicitTools` option of the `PersonalAccessTokenTools` constraint.
+* `anzu:personal-access-token:create` takes the repeatable `--explicit-read-tool` and prints the explicit read tools. `anzu:personal-access-token:list` shows them in a column of their own.
+* New `PUT personal-access-token/{id}/tools` route (`auth_personal_access_token_update_tools`) replaces `readTools`, `explicitReadTools` and `writeTools` of a token. The name, the expiration and the token value stay. The body is the new `PersonalAccessTokenToolsUpdateDto`; `writeTools` is required, a missing `readTools` is read as `null` and a missing `explicitReadTools` as `[]`.
+* The route needs `auth_personalAccessToken_create` with the create role, and `auth_personalAccessToken_createWithWriteTools` when `writeTools` is not empty. The owner of the token or a super admin may change it. No new permission.
+* `PersonalAccessTokenFacade::updateTools()` answers 422 on `revokedAt` for a revoked token and on `expiresAt` for an expired one, and 422 on `readTools`, `explicitReadTools` or `writeTools` for a tool whose mapped permission the owner of the token does not hold, also when a super admin changes the token.
+* New `anzu:personal-access-token:update-tools <id>` command with `--write-tool`, `--read-tool`, `--explicit-read-tool`, `--no-read-tools` and `--all-read-tools`. `--all-read-tools` sets `readTools` to `null` and is mutually exclusive with `--read-tool` and `--no-read-tools`. Unlike `anzu:personal-access-token:create` it checks the permissions of the owner.
+* Run in a terminal without any of these options, `anzu:personal-access-token:update-tools` shows the token and asks for the new tools: the read tools (all, selected or none), the explicit read tools and the write tools, each offered from the tools the owner may grant, with the current choice as the default answer. It shows the change and saves it after a confirmation. Run without any of these options where it cannot ask (`--no-interaction`, or no terminal), it saves nothing and fails with a message that names the options; with `--quiet` it fails without the message.
+* A change of the tools is logged as `Personal access token tools updated.` with the previous and the new lists.
+* New `AbstractPersonalAccessToken::isExpired()`.
+
+### Changes
+* BC change: `readTools` no longer accepts a tool declared with `explicitGrant`; name it in `explicitReadTools`. Validation fails on `readTools` otherwise.
+* BC change: a token that names an `explicitGrant` tool in `readTools` no longer gets it. Move such names from `read_tools` to `explicit_read_tools` in the migration that adds the column.
+* BC change: `PersonalAccessTokenToolResolver::resolveReadToolNames()` leaves out the `explicitGrant` tools.
+* BC change: `anzusystems/common-bundle` requirement raised to `^12.1` (`McpToolAccessChecker::getPermittedToolNamesForUser()`, `McpToolScope::$explicitToolNames`).
+* After a rollback to a version without `explicitReadTools`, a token loses its `explicitGrant` tools until the new version is back.
+
+## [6.0.0](https://github.com/anzusystems/auth-bundle/compare/5.2.1...6.0.0) (2026-11-10)
+
+### Features
 * Personal access tokens say which MCP tools they may use, fixed at creation: `writeTools` (`list<string>`, `[]` is a read-only token) and `readTools` (`?list<string>`, `null` keeps every read tool the user may use). The management API accepts and returns both. Every name must be a tool of that kind in the MCP configuration, listed once, otherwise validation fails on that field. Add the columns with a migration.
 * Creating a token with at least one write tool through the management API requires the new `auth_personalAccessToken_createWithWriteTools` permission (`PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS`) on top of `auth_personalAccessToken_create`.
 * `PersonalAccessTokenFacade::createGranted()`, used by the management API, answers 422 on `readTools` or `writeTools` for a tool whose mapped permission the creator does not hold. The console command uses `create()`, which checks the configuration only.

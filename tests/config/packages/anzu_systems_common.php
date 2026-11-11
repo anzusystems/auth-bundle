@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
+use AnzuSystems\AuthBundle\Command\ListPersonalAccessTokensCommand;
+use AnzuSystems\AuthBundle\Command\UpdatePersonalAccessTokenToolsCommand;
 use AnzuSystems\AuthBundle\Tests\Data\Entity\User;
 use AnzuSystems\CommonBundle\Command\GenerateFixturesCommand;
 use Doctrine\ORM\Tools\Console\Command\SchemaTool\CreateCommand;
@@ -18,6 +21,9 @@ return [
             'unlocked_commands' => [
                 CreateCommand::class,
                 GenerateFixturesCommand::class,
+                CreatePersonalAccessTokenCommand::class,
+                ListPersonalAccessTokensCommand::class,
+                UpdatePersonalAccessTokenToolsCommand::class,
             ],
         ],
         'health_check' => [

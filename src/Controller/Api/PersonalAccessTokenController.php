@@ -8,6 +8,7 @@ use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessToken
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateDto;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenTool;
+use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenToolsUpdateDto;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver\PersonalAccessTokenToolResolver;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
@@ -91,6 +92,7 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
                 ->getId(),
             'writeTools' => $result->personalAccessToken->getWriteTools(),
             'readTools' => $result->personalAccessToken->getReadTools(),
+            'explicitReadTools' => $result->personalAccessToken->getExplicitReadTools(),
         ]);
 
         return $this->createdResponse($result);
@@ -104,15 +106,42 @@ final class PersonalAccessTokenController extends AbstractAnzuApiController
     public function revoke(Request $request, int $id): JsonResponse
     {
         AnzuApp::throwOnReadOnlyMode();
-        $personalAccessToken = $this->personalAccessTokenRepo->find($id);
-        if (false === ($personalAccessToken instanceof AbstractPersonalAccessToken)) {
-            throw $this->createNotFoundException();
-        }
+        $personalAccessToken = $this->getPersonalAccessToken($id);
         $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_REVOKE, $personalAccessToken);
         AuditLogResourceHelper::setResourceByEntity(request: $request, entity: $personalAccessToken);
 
         return $this->okResponse(
             $this->personalAccessTokenFacade->revoke($personalAccessToken)
         );
+    }
+
+    /**
+     * @throws ValidationException|AppReadOnlyModeException
+     */
+    #[Route('/{id}/tools', name: 'update_tools', requirements: ['id' => Requirement::POSITIVE_INT], methods: [Request::METHOD_PUT])]
+    #[OAParameterPath('id'), OARequest(PersonalAccessTokenToolsUpdateDto::class), OAResponse(AbstractPersonalAccessToken::class), OAResponseValidation, OAResponseNotFound, OAResponseUnauthorized, OAResponseForbidden]
+    public function updateTools(Request $request, int $id, #[SerializeParam] PersonalAccessTokenToolsUpdateDto $dto): JsonResponse
+    {
+        AnzuApp::throwOnReadOnlyMode();
+        $personalAccessToken = $this->getPersonalAccessToken($id);
+        $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE, $personalAccessToken);
+        if (false === empty($dto->writeTools)) {
+            $this->denyAccessUnlessGranted(PersonalAccessTokenPermission::PERSONAL_ACCESS_TOKEN_CREATE_WITH_WRITE_TOOLS);
+        }
+        AuditLogResourceHelper::setResourceByEntity(request: $request, entity: $personalAccessToken);
+        $result = $this->personalAccessTokenFacade->updateTools($personalAccessToken, $dto);
+        $this->logger->info(PersonalAccessTokenFacade::LOG_MESSAGE_TOOLS_UPDATED, $result->getLogContext());
+
+        return $this->okResponse($result->personalAccessToken);
+    }
+
+    private function getPersonalAccessToken(int $id): AbstractPersonalAccessToken
+    {
+        $personalAccessToken = $this->personalAccessTokenRepo->find($id);
+        if (false === ($personalAccessToken instanceof AbstractPersonalAccessToken)) {
+            throw $this->createNotFoundException();
+        }
+
+        return $personalAccessToken;
     }
 }

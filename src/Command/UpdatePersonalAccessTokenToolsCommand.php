@@ -47,6 +47,7 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
     private const string QUESTION_READ_SCOPE = 'Which read tools may the token use?';
     private const string QUESTION_TOOLS_FORMAT = '%s (numbers or names separated by a comma)';
     private const string CHANGE_FORMAT = '%s: %s (before: %s)';
+    private const string ERROR_FORMAT = '<error>%s</error>';
     private const string CHOICE_SEPARATOR = ',';
     private const string LIST_SEPARATOR = ', ';
     private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
@@ -103,7 +104,7 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
         }
         $readOptions = array_filter([$noReadTools, $allReadTools, false === empty($readTools)]);
         if (count($readOptions) > 1) {
-            $io->writeln(sprintf('<error>%s</error>', self::MESSAGE_EXCLUSIVE_READ_OPTIONS));
+            $io->writeln(sprintf(self::ERROR_FORMAT, self::MESSAGE_EXCLUSIVE_READ_OPTIONS));
 
             return self::FAILURE;
         }
@@ -122,17 +123,20 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
             || false === empty($readTools)
             || false === empty($explicitReadTools);
         if (false === $hasToolOption) {
+            if ($input->isInteractive()) {
+                if ($token->isRevoked() || $token->isExpired()) {
+                    $io->writeln(sprintf(self::ERROR_FORMAT, sprintf(self::MESSAGE_NOT_ACTIVE, $id, $token->getName())));
+
+                    return self::FAILURE;
+                }
+                $dto = $this->askToolsUpdate($io, $token);
+            }
+            // Symfony turns interaction off only for -n and -q; without a terminal QuestionHelper does it when the input ends.
             if (false === $input->isInteractive()) {
-                $io->writeln(sprintf('<error>%s</error>', self::MESSAGE_NO_TOOL_OPTION));
+                $io->writeln(sprintf(self::ERROR_FORMAT, self::MESSAGE_NO_TOOL_OPTION));
 
                 return self::FAILURE;
             }
-            if ($token->isRevoked() || $token->isExpired()) {
-                $io->writeln(sprintf('<error>' . self::MESSAGE_NOT_ACTIVE . '</error>', $id, $token->getName()));
-
-                return self::FAILURE;
-            }
-            $dto = $this->askToolsUpdate($io, $token);
         }
         if (null === $dto) {
             $io->writeln(self::MESSAGE_NOTHING_CHANGED);

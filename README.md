@@ -238,8 +238,9 @@ Console commands:
   tools and the write tools, with the current choice as the default answer. A list is answered with numbers or names
   separated by a comma, `none` for an empty one. A tool the token holds and the owner may no longer grant is listed and
   removed when saved. The command shows the change and saves it after a confirmation. Run without any
-  of these options where it cannot ask (`--no-interaction`, `--quiet`, or no terminal, such as a cron job or a pipe),
-  it saves nothing and fails with a message that names the options.
+  of these options where it cannot ask (`--no-interaction`, or no terminal, such as a cron job), it saves nothing and
+  fails with a message that names the options; with `--quiet` it fails without the message. Answers piped to it are
+  read like answers typed in a terminal.
 * `anzu:personal-access-token:notify-expiring` — daily cron; notifies owners of tokens expiring in 7 days or 1 day
   through `PersonalAccessTokenExpiryNotifierInterface` (no-op by default — alias your own implementation). The
   final-notice windows of consecutive runs overlap, so the implementation must be idempotent per

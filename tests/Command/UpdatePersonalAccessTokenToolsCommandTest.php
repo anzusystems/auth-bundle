@@ -448,6 +448,35 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
         ];
     }
 
+    public function testInteractiveRunWhoseInputEndsFails(): void
+    {
+        $personalAccessToken = $this->createToken(
+            userId: UserFixtures::TOKEN_MANAGER_ID,
+            writeTools: [ExampleTool::WRITE],
+            readTools: [ExampleTool::READ],
+        );
+        $tokenId = (int) $personalAccessToken->getId();
+
+        $commandTester = $this->executeCommand(
+            tokenId: $tokenId,
+            options: [],
+            interactive: true,
+            inputs: [self::ANSWER_DEFAULT],
+        );
+
+        self::assertSame(Command::FAILURE, $commandTester->getStatusCode());
+        self::assertStringContainsString(
+            UpdatePersonalAccessTokenToolsCommand::MESSAGE_NO_TOOL_OPTION,
+            $commandTester->getDisplay(),
+        );
+        $this->assertStoredTools(
+            tokenId: $tokenId,
+            expectedReadTools: [ExampleTool::READ],
+            expectedExplicitReadTools: [],
+            expectedWriteTools: [ExampleTool::WRITE],
+        );
+    }
+
     #[DataProvider('inactiveStateDataProvider')]
     public function testInteractiveUpdateRefusesAnInactiveTokenWithoutQuestions(string $state): void
     {

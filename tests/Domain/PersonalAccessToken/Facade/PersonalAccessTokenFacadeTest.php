@@ -169,12 +169,14 @@ final class PersonalAccessTokenFacadeTest extends TestCase
      * @param list<string> $writeTools
      * @param list<string>|null $readTools
      * @param list<string> $expectedFields
+     * @param list<string> $explicitReadTools
      */
     #[DataProvider('ungrantableToolsDataProvider')]
     public function testCreateGrantedRefusesToolsTheUserMayNotUse(
         array $writeTools,
         ?array $readTools,
         array $expectedFields,
+        array $explicitReadTools = [],
     ): void {
         try {
             $this->facade->createGranted(
@@ -182,7 +184,8 @@ final class PersonalAccessTokenFacadeTest extends TestCase
                 new PersonalAccessTokenCreateDto()
                     ->setName('test-token')
                     ->setWriteTools($writeTools)
-                    ->setReadTools($readTools),
+                    ->setReadTools($readTools)
+                    ->setExplicitReadTools($explicitReadTools),
             );
             self::fail('Expected ' . ValidationException::class);
         } catch (ValidationException $exception) {
@@ -192,7 +195,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
     }
 
     /**
-     * @return array<string, array{0: list<string>, 1: list<string>|null, 2: list<string>}>
+     * @return array<string, array{0: list<string>, 1: list<string>|null, 2: list<string>, 3?: list<string>}>
      */
     public static function ungrantableToolsDataProvider(): array
     {
@@ -200,6 +203,7 @@ final class PersonalAccessTokenFacadeTest extends TestCase
             'write tool without permission' => [[self::NOT_PERMITTED_WRITE_TOOL], null, ['writeTools']],
             'read tool without permission' => [[], [self::NOT_PERMITTED_READ_TOOL], ['readTools']],
             'unknown tools in both lists' => [['unknown'], ['unknown'], ['readTools', 'writeTools']],
+            'explicit read tool without permission' => [[], null, ['explicitReadTools'], [self::NOT_PERMITTED_READ_TOOL]],
         ];
     }
 

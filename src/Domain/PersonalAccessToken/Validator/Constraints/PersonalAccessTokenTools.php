@@ -17,6 +17,7 @@ final class PersonalAccessTokenTools extends Constraint
     #[HasNamedArguments]
     public function __construct(
         public readonly bool $writeTools = false,
+        public readonly bool $explicitTools = false,
     ) {
         parent::__construct();
     }

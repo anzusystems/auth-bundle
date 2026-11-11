@@ -69,6 +69,16 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     #[PersonalAccessTokenTools]
     protected ?array $readTools = null;
 
+    /**
+     * Nullable for the same reason as writeTools.
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    #[Assert\Unique(message: ValidationException::ERROR_FIELD_UNIQUE)]
+    #[PersonalAccessTokenTools(explicitTools: true)]
+    protected ?array $explicitReadTools = null;
+
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     #[Serialize]
     #[Assert\GreaterThan(value: 'now', message: ValidationException::ERROR_FIELD_RANGE_MIN)]
@@ -97,6 +107,11 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public function isRevoked(): bool
     {
         return $this->revokedAt instanceof DateTimeImmutable;
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expiresAt instanceof DateTimeImmutable && $this->expiresAt <= AnzuApp::date();
     }
 
     public function getUser(): AnzuUser
@@ -172,6 +187,25 @@ abstract class AbstractPersonalAccessToken implements IdentifiableInterface, Tim
     public function setReadTools(?array $readTools): static
     {
         $this->readTools = is_array($readTools) ? array_values($readTools) : null;
+
+        return $this;
+    }
+
+    /**
+     * @return list<string>
+     */
+    #[Serialize]
+    public function getExplicitReadTools(): array
+    {
+        return $this->explicitReadTools ?? [];
+    }
+
+    /**
+     * @param array<string> $explicitReadTools
+     */
+    public function setExplicitReadTools(array $explicitReadTools): static
+    {
+        $this->explicitReadTools = array_values($explicitReadTools);
 
         return $this;
     }

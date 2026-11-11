@@ -67,15 +67,25 @@ final class PersonalAccessTokenToolResolverTest extends TestCase
         );
     }
 
-    public function testToolNamesAreSplitIntoReadAndWriteTools(): void
+    public function testToolNamesAreSplitIntoReadExplicitReadAndWriteTools(): void
     {
         $resolver = $this->createResolver(true);
 
         self::assertSame(
-            [self::READ_TOOL, self::NOT_PERMITTED_TOOL, self::SECOND_READ_TOOL, self::EXPLICIT_GRANT_TOOL],
+            [self::READ_TOOL, self::NOT_PERMITTED_TOOL, self::SECOND_READ_TOOL],
             $resolver->resolveReadToolNames(),
         );
+        self::assertSame([self::EXPLICIT_GRANT_TOOL], $resolver->resolveExplicitReadToolNames());
         self::assertSame([self::WRITE_TOOL], $resolver->resolveWriteToolNames());
+    }
+
+    public function testThereIsNoToolNameWithoutMcp(): void
+    {
+        $resolver = $this->createResolver(false);
+
+        self::assertSame([], $resolver->resolveReadToolNames());
+        self::assertSame([], $resolver->resolveExplicitReadToolNames());
+        self::assertSame([], $resolver->resolveWriteToolNames());
     }
 
     private function createResolver(bool $mcpEnabled): PersonalAccessTokenToolResolver

@@ -47,6 +47,7 @@ final class CreatePersonalAccessTokenCommand extends Command
     /**
      * @param list<string> $writeTools
      * @param list<string> $readTools
+     * @param list<string> $explicitReadTools
      *
      * @throws AppReadOnlyModeException
      * @throws RandomException
@@ -73,6 +74,11 @@ final class CreatePersonalAccessTokenCommand extends Command
             name: 'read-tool',
         )]
         array $readTools = [],
+        #[Option(
+            description: 'Name of an MCP read tool granted only by name, repeat the option to grant more tools. Without it the token gets none of them.',
+            name: 'explicit-read-tool',
+        )]
+        array $explicitReadTools = [],
         #[Option(description: 'Give the token no read tool (mutually exclusive with --read-tool).')]
         bool $noReadTools = false,
     ): int {
@@ -124,6 +130,7 @@ final class CreatePersonalAccessTokenCommand extends Command
                 neverExpires: $neverExpires,
                 writeTools: $writeTools,
                 readTools: $resolvedReadTools,
+                explicitReadTools: $explicitReadTools,
             );
         } catch (ValidationException $exception) {
             $io->writeln(sprintf(
@@ -140,22 +147,23 @@ final class CreatePersonalAccessTokenCommand extends Command
             'Expires at: %s',
             $token->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
-        $io->writeln(sprintf('Write tools: %s', $this->formatWriteTools($token->getWriteTools())));
+        $io->writeln(sprintf('Write tools: %s', $this->formatTools($token->getWriteTools())));
         $io->writeln(sprintf('Read tools: %s', $this->formatReadTools($token->getReadTools())));
+        $io->writeln(sprintf('Explicit read tools: %s', $this->formatTools($token->getExplicitReadTools())));
 
         return self::SUCCESS;
     }
 
     /**
-     * @param list<string> $writeTools
+     * @param list<string> $tools
      */
-    private function formatWriteTools(array $writeTools): string
+    private function formatTools(array $tools): string
     {
-        if (empty($writeTools)) {
+        if (empty($tools)) {
             return self::TOOLS_NONE;
         }
 
-        return implode(self::LIST_SEPARATOR, $writeTools);
+        return implode(self::LIST_SEPARATOR, $tools);
     }
 
     /**
@@ -166,10 +174,7 @@ final class CreatePersonalAccessTokenCommand extends Command
         if (null === $readTools) {
             return self::READ_TOOLS_UNRESTRICTED;
         }
-        if (empty($readTools)) {
-            return self::TOOLS_NONE;
-        }
 
-        return implode(self::LIST_SEPARATOR, $readTools);
+        return $this->formatTools($readTools);
     }
 }

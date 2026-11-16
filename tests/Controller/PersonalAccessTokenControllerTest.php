@@ -212,7 +212,7 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
 
         $response = $this->requestJson(Request::METHOD_POST, self::URI, ['name' => self::TOKEN_NAME, 'explicitReadTools' => null]);
 
-        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        self::assertResponseStatusCodeSame(Response::HTTP_UNPROCESSABLE_ENTITY);
         self::assertSame(self::SERIALIZER_ERROR, $response['error']);
         self::assertCount(0, $this->getRepository()->findByUser($this->getUser(UserFixtures::TOKEN_MANAGER_ID)));
     }

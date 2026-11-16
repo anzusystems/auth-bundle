@@ -30,8 +30,8 @@ final class CreatePersonalAccessTokenCommand extends Command
     private const string LIST_SEPARATOR = ', ';
     public const string TOOLS_NONE = 'none';
     public const string READ_TOOLS_UNRESTRICTED = 'all the user may use, except tools granted only by name';
-    private const string EXPIRES_AT_NEVER = 'never';
-    private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
+    public const string EXPIRES_AT_NEVER = 'never';
+    public const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     /**
      * @param class-string<AnzuUser> $userEntityClass
@@ -147,9 +147,9 @@ final class CreatePersonalAccessTokenCommand extends Command
             'Expires at: %s',
             $token->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
-        $io->writeln(sprintf('Write tools: %s', $this->formatTools($token->getWriteTools())));
-        $io->writeln(sprintf('Read tools: %s', $this->formatReadTools($token->getReadTools())));
-        $io->writeln(sprintf('Explicit read tools: %s', $this->formatTools($token->getExplicitReadTools())));
+        $io->writeln(sprintf('Write tools: %s', self::formatTools($token->getWriteTools())));
+        $io->writeln(sprintf('Read tools: %s', self::formatReadTools($token->getReadTools())));
+        $io->writeln(sprintf('Explicit read tools: %s', self::formatTools($token->getExplicitReadTools())));
 
         return self::SUCCESS;
     }
@@ -157,7 +157,7 @@ final class CreatePersonalAccessTokenCommand extends Command
     /**
      * @param list<string> $tools
      */
-    private function formatTools(array $tools): string
+    public static function formatTools(array $tools): string
     {
         if (empty($tools)) {
             return self::TOOLS_NONE;
@@ -169,12 +169,12 @@ final class CreatePersonalAccessTokenCommand extends Command
     /**
      * @param list<string>|null $readTools
      */
-    private function formatReadTools(?array $readTools): string
+    public static function formatReadTools(?array $readTools): string
     {
         if (null === $readTools) {
             return self::READ_TOOLS_UNRESTRICTED;
         }
 
-        return $this->formatTools($readTools);
+        return self::formatTools($readTools);
     }
 }

@@ -31,6 +31,7 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
     public const string MESSAGE_NOT_ACTIVE = 'Token %d "%s" is revoked or expired, its tools cannot be changed.';
     public const string MESSAGE_NO_TOOL_OPTION = 'Name the tools with --read-tool, --explicit-read-tool, --write-tool, --no-read-tools or --all-read-tools, or run the command in a terminal.';
     public const string MESSAGE_EXCLUSIVE_READ_OPTIONS = 'Options --read-tool, --no-read-tools and --all-read-tools are mutually exclusive.';
+    public const string MESSAGE_NO_READ_OPTION = 'Name the read tools with --read-tool, --no-read-tools or --all-read-tools, the new tools replace all of the old ones.';
     public const string QUESTION_SAVE = 'Save the new tools?';
     public const string READ_SCOPE_ALL = 'all';
     public const string READ_SCOPE_SELECTED = 'selected';
@@ -49,9 +50,6 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
     private const string CHANGE_FORMAT = '%s: %s (before: %s)';
     private const string ERROR_FORMAT = '<error>%s</error>';
     private const string CHOICE_SEPARATOR = ',';
-    private const string LIST_SEPARATOR = ', ';
-    private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
-    private const string EXPIRES_AT_NEVER = 'never';
 
     public function __construct(
         private readonly PersonalAccessTokenRepository $personalAccessTokenRepo,
@@ -80,7 +78,7 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
         )]
         array $writeTools = [],
         #[Option(
-            description: 'Name of an MCP read tool the token may use, repeat the option to allow more tools. Without it the token gets every read tool its user may use, except the tools granted only by name.',
+            description: 'Name of an MCP read tool the token may use, repeat the option to allow more tools.',
             name: 'read-tool',
         )]
         array $readTools = [],
@@ -108,20 +106,19 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
 
             return self::FAILURE;
         }
+        $hasToolOption = false === empty($readOptions)
+            || false === empty($writeTools)
+            || false === empty($explicitReadTools);
+        if ($hasToolOption && empty($readOptions)) {
+            $io->writeln(sprintf(self::ERROR_FORMAT, self::MESSAGE_NO_READ_OPTION));
+
+            return self::FAILURE;
+        }
 
         $dto = new PersonalAccessTokenToolsUpdateDto();
         $dto->writeTools = $writeTools;
         $dto->explicitReadTools = $explicitReadTools;
-        $dto->readTools = empty($readTools) ? null : $readTools;
-        if ($noReadTools) {
-            $dto->readTools = [];
-        }
-
-        $hasToolOption = $noReadTools
-            || $allReadTools
-            || false === empty($writeTools)
-            || false === empty($readTools)
-            || false === empty($explicitReadTools);
+        $dto->readTools = $allReadTools ? null : $readTools;
         if (false === $hasToolOption) {
             if ($input->isInteractive()) {
                 if ($token->isRevoked() || $token->isExpired()) {
@@ -162,23 +159,14 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
             $token->getName(),
             (int) $token->getUser()->getId(),
         ));
-        $this->writeChange(
+        $this->writeChanges(
             io: $io,
-            label: self::LABEL_READ_TOOLS,
-            tools: $this->formatReadTools($token->getReadTools()),
-            previousTools: $this->formatReadTools($result->previousReadTools),
-        );
-        $this->writeChange(
-            io: $io,
-            label: self::LABEL_EXPLICIT_READ_TOOLS,
-            tools: $this->formatTools($token->getExplicitReadTools()),
-            previousTools: $this->formatTools($result->previousExplicitReadTools),
-        );
-        $this->writeChange(
-            io: $io,
-            label: self::LABEL_WRITE_TOOLS,
-            tools: $this->formatTools($token->getWriteTools()),
-            previousTools: $this->formatTools($result->previousWriteTools),
+            readTools: $token->getReadTools(),
+            explicitReadTools: $token->getExplicitReadTools(),
+            writeTools: $token->getWriteTools(),
+            previousReadTools: $result->previousReadTools,
+            previousExplicitReadTools: $result->previousExplicitReadTools,
+            previousWriteTools: $result->previousWriteTools,
         );
 
         return self::SUCCESS;
@@ -200,7 +188,7 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
         if (false === empty($removedToolNames)) {
             $io->writeln(sprintf(
                 '<comment>' . self::MESSAGE_REMOVED_WHEN_SAVED . '</comment>',
-                implode(self::LIST_SEPARATOR, $removedToolNames),
+                CreatePersonalAccessTokenCommand::formatTools($removedToolNames),
             ));
         }
 
@@ -224,23 +212,14 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
             return null;
         }
 
-        $this->writeChange(
+        $this->writeChanges(
             io: $io,
-            label: self::LABEL_READ_TOOLS,
-            tools: $this->formatReadTools($readTools),
-            previousTools: $this->formatReadTools($token->getReadTools()),
-        );
-        $this->writeChange(
-            io: $io,
-            label: self::LABEL_EXPLICIT_READ_TOOLS,
-            tools: $this->formatTools($explicitReadTools),
-            previousTools: $this->formatTools($token->getExplicitReadTools()),
-        );
-        $this->writeChange(
-            io: $io,
-            label: self::LABEL_WRITE_TOOLS,
-            tools: $this->formatTools($writeTools),
-            previousTools: $this->formatTools($token->getWriteTools()),
+            readTools: $readTools,
+            explicitReadTools: $explicitReadTools,
+            writeTools: $writeTools,
+            previousReadTools: $token->getReadTools(),
+            previousExplicitReadTools: $token->getExplicitReadTools(),
+            previousWriteTools: $token->getWriteTools(),
         );
         if (false === $io->confirm(self::QUESTION_SAVE, false)) {
             return null;
@@ -263,11 +242,11 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
             $token->getName(),
             (int) $user->getId(),
             $user->getEmail(),
-            $token->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
+            $token->getExpiresAt()?->format(CreatePersonalAccessTokenCommand::DATETIME_FORMAT) ?? CreatePersonalAccessTokenCommand::EXPIRES_AT_NEVER,
         ));
-        $io->writeln(sprintf('%s: %s', self::LABEL_READ_TOOLS, $this->formatReadTools($token->getReadTools())));
-        $io->writeln(sprintf('%s: %s', self::LABEL_EXPLICIT_READ_TOOLS, $this->formatTools($token->getExplicitReadTools())));
-        $io->writeln(sprintf('%s: %s', self::LABEL_WRITE_TOOLS, $this->formatTools($token->getWriteTools())));
+        $io->writeln(sprintf('%s: %s', self::LABEL_READ_TOOLS, CreatePersonalAccessTokenCommand::formatReadTools($token->getReadTools())));
+        $io->writeln(sprintf('%s: %s', self::LABEL_EXPLICIT_READ_TOOLS, CreatePersonalAccessTokenCommand::formatTools($token->getExplicitReadTools())));
+        $io->writeln(sprintf('%s: %s', self::LABEL_WRITE_TOOLS, CreatePersonalAccessTokenCommand::formatTools($token->getWriteTools())));
     }
 
     /**
@@ -372,32 +351,45 @@ final class UpdatePersonalAccessTokenToolsCommand extends Command
         return $tools === $otherTools;
     }
 
+    /**
+     * @param list<string>|null $readTools
+     * @param list<string> $explicitReadTools
+     * @param list<string> $writeTools
+     * @param list<string>|null $previousReadTools
+     * @param list<string> $previousExplicitReadTools
+     * @param list<string> $previousWriteTools
+     */
+    private function writeChanges(
+        SymfonyStyle $io,
+        ?array $readTools,
+        array $explicitReadTools,
+        array $writeTools,
+        ?array $previousReadTools,
+        array $previousExplicitReadTools,
+        array $previousWriteTools,
+    ): void {
+        $this->writeChange(
+            io: $io,
+            label: self::LABEL_READ_TOOLS,
+            tools: CreatePersonalAccessTokenCommand::formatReadTools($readTools),
+            previousTools: CreatePersonalAccessTokenCommand::formatReadTools($previousReadTools),
+        );
+        $this->writeChange(
+            io: $io,
+            label: self::LABEL_EXPLICIT_READ_TOOLS,
+            tools: CreatePersonalAccessTokenCommand::formatTools($explicitReadTools),
+            previousTools: CreatePersonalAccessTokenCommand::formatTools($previousExplicitReadTools),
+        );
+        $this->writeChange(
+            io: $io,
+            label: self::LABEL_WRITE_TOOLS,
+            tools: CreatePersonalAccessTokenCommand::formatTools($writeTools),
+            previousTools: CreatePersonalAccessTokenCommand::formatTools($previousWriteTools),
+        );
+    }
+
     private function writeChange(SymfonyStyle $io, string $label, string $tools, string $previousTools): void
     {
         $io->writeln(sprintf(self::CHANGE_FORMAT, $label, $tools, $previousTools));
-    }
-
-    /**
-     * @param list<string>|null $readTools
-     */
-    private function formatReadTools(?array $readTools): string
-    {
-        if (null === $readTools) {
-            return CreatePersonalAccessTokenCommand::READ_TOOLS_UNRESTRICTED;
-        }
-
-        return $this->formatTools($readTools);
-    }
-
-    /**
-     * @param list<string> $tools
-     */
-    private function formatTools(array $tools): string
-    {
-        if (empty($tools)) {
-            return CreatePersonalAccessTokenCommand::TOOLS_NONE;
-        }
-
-        return implode(self::LIST_SEPARATOR, $tools);
     }
 }

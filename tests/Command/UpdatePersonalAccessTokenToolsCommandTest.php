@@ -57,7 +57,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             userId: UserFixtures::TOKEN_MANAGER_ID,
             writeTools: [ExampleTool::WRITE],
             readTools: [ExampleTool::READ],
-        );
+        )->personalAccessToken;
         $tokenId = (int) $personalAccessToken->getId();
 
         $commandTester = $this->executeCommand($tokenId, $options);
@@ -132,7 +132,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             ],
         ];
         yield 'every read tool together with an explicit read tool' => [
-            [self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::EXPLICIT_READ]],
+            [self::OPTION_ALL_READ_TOOLS => true, self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::EXPLICIT_READ]],
             null,
             [ExampleTool::EXPLICIT_READ],
             [],
@@ -153,7 +153,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             userId: UserFixtures::READ_TOOLS_TOKEN_MANAGER_ID,
             writeTools: [ExampleTool::WRITE],
             readTools: [ExampleTool::READ],
-        );
+        )->personalAccessToken;
         $this->applyState($personalAccessToken, $state);
         $tokenId = (int) $personalAccessToken->getId();
 
@@ -194,14 +194,24 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             [self::OPTION_NO_READ_TOOLS => true, self::OPTION_ALL_READ_TOOLS => true],
             UpdatePersonalAccessTokenToolsCommand::MESSAGE_EXCLUSIVE_READ_OPTIONS,
         ];
+        yield 'a write tool without a read tool option' => [
+            null,
+            [self::OPTION_WRITE_TOOL => [ExampleTool::WRITE]],
+            UpdatePersonalAccessTokenToolsCommand::MESSAGE_NO_READ_OPTION,
+        ];
+        yield 'an explicit read tool without a read tool option' => [
+            null,
+            [self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::EXPLICIT_READ]],
+            UpdatePersonalAccessTokenToolsCommand::MESSAGE_NO_READ_OPTION,
+        ];
         yield 'a revoked token' => [
             self::STATE_REVOKED,
-            [self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::EXPLICIT_READ]],
+            [self::OPTION_ALL_READ_TOOLS => true],
             self::formatValidationOutput('revokedAt', ValidationException::ERROR_FIELD_INVALID),
         ];
         yield 'an expired token' => [
             self::STATE_EXPIRED,
-            [self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::EXPLICIT_READ]],
+            [self::OPTION_ALL_READ_TOOLS => true],
             self::formatValidationOutput('expiresAt', ValidationException::ERROR_FIELD_INVALID),
         ];
         yield 'a read tool the owner has no permission for' => [
@@ -211,7 +221,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
         ];
         yield 'a write tool the owner has no permission for' => [
             null,
-            [self::OPTION_WRITE_TOOL => [ExampleTool::RESTRICTED_WRITE]],
+            [self::OPTION_ALL_READ_TOOLS => true, self::OPTION_WRITE_TOOL => [ExampleTool::RESTRICTED_WRITE]],
             self::formatValidationOutput('writeTools', ValidationException::ERROR_FIELD_INVALID),
         ];
         yield 'an unknown tool' => [
@@ -226,7 +236,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
         ];
         yield 'a read tool among the explicit read tools' => [
             null,
-            [self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::READ]],
+            [self::OPTION_ALL_READ_TOOLS => true, self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::READ]],
             self::formatValidationOutput('explicitReadTools', ValidationException::ERROR_FIELD_INVALID),
         ];
     }
@@ -259,7 +269,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             userId: UserFixtures::TOKEN_MANAGER_ID,
             writeTools: [ExampleTool::WRITE],
             readTools: [ExampleTool::READ],
-        );
+        )->personalAccessToken;
         $tokenId = (int) $personalAccessToken->getId();
 
         $commandTester = $this->executeCommand(tokenId: $tokenId, options: $options, interactive: true);
@@ -281,12 +291,17 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
     {
         yield 'a read tool' => [[self::OPTION_READ_TOOL => [ExampleTool::READ]], [ExampleTool::READ], [], []];
         yield 'an explicit read tool' => [
-            [self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::EXPLICIT_READ]],
+            [self::OPTION_ALL_READ_TOOLS => true, self::OPTION_EXPLICIT_READ_TOOL => [ExampleTool::EXPLICIT_READ]],
             null,
             [ExampleTool::EXPLICIT_READ],
             [],
         ];
-        yield 'a write tool' => [[self::OPTION_WRITE_TOOL => [ExampleTool::WRITE]], null, [], [ExampleTool::WRITE]];
+        yield 'a write tool' => [
+            [self::OPTION_ALL_READ_TOOLS => true, self::OPTION_WRITE_TOOL => [ExampleTool::WRITE]],
+            null,
+            [],
+            [ExampleTool::WRITE],
+        ];
         yield 'no read tools' => [[self::OPTION_NO_READ_TOOLS => true], [], [], []];
         yield 'every read tool' => [[self::OPTION_ALL_READ_TOOLS => true], null, [], []];
     }
@@ -310,7 +325,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
         array $expectedWriteTools,
         string $expectedOutput,
     ): void {
-        $tokenId = (int) $this->createToken(userId: $ownerId, writeTools: $writeTools, readTools: $readTools)->getId();
+        $tokenId = (int) $this->createToken(userId: $ownerId, writeTools: $writeTools, readTools: $readTools)->personalAccessToken->getId();
 
         $commandTester = $this->executeCommand(tokenId: $tokenId, options: [], interactive: true, inputs: $inputs);
 
@@ -411,7 +426,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             writeTools: [ExampleTool::WRITE],
             readTools: [ExampleTool::READ],
             explicitReadTools: [ExampleTool::EXPLICIT_READ],
-        );
+        )->personalAccessToken;
         $tokenId = (int) $personalAccessToken->getId();
 
         $commandTester = $this->executeCommand(tokenId: $tokenId, options: [], interactive: true, inputs: $inputs);
@@ -454,7 +469,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             userId: UserFixtures::TOKEN_MANAGER_ID,
             writeTools: [ExampleTool::WRITE],
             readTools: [ExampleTool::READ],
-        );
+        )->personalAccessToken;
         $tokenId = (int) $personalAccessToken->getId();
 
         $commandTester = $this->executeCommand(
@@ -484,7 +499,7 @@ final class UpdatePersonalAccessTokenToolsCommandTest extends AbstractKernelTest
             userId: UserFixtures::TOKEN_MANAGER_ID,
             writeTools: [ExampleTool::WRITE],
             readTools: [ExampleTool::READ],
-        );
+        )->personalAccessToken;
         $this->applyState($personalAccessToken, $state);
         $tokenId = (int) $personalAccessToken->getId();
 

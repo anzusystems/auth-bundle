@@ -196,7 +196,8 @@ category of the tool from `#[AsMcpTool(category: …)]`, camelCase, so a client 
 
 `PUT <prefix>/personal-access-token/{id}/tools` (`PersonalAccessTokenFacade::updateTools()`) replaces the three lists
 at once; the name, the expiration and the token value stay. `writeTools` is required (422 `error_field_empty`), a
-missing `readTools` is read as `null` and a missing `explicitReadTools` as `[]`. A revoked token answers 422 on
+missing `readTools` is read as `null`, so such a body gives the token every read tool, and a missing
+`explicitReadTools` is read as `[]`. A revoked token answers 422 on
 `revokedAt` and an expired one 422 on `expiresAt`. Every name must be a tool whose mapped permission the owner of the
 token holds, also when a super admin changes the token, otherwise the answer is 422 on `readTools`,
 `explicitReadTools` or `writeTools`. A change of the tools applies from the next request. The
@@ -229,10 +230,11 @@ Console commands:
 * `anzu:personal-access-token:revoke <id>` — revokes a token of any user, it stops working at once. A token already
   revoked stays as it is.
 * `anzu:personal-access-token:update-tools <id> [--write-tool=<name> ...] [--read-tool=<name> ... | --no-read-tools | --all-read-tools] [--explicit-read-tool=<name> ...]` —
-  replaces the three tool lists of a token of any user. Without `--read-tool` and `--no-read-tools` `readTools` becomes
-  `null`, without `--explicit-read-tool` the token loses its `explicitGrant` tools, without `--write-tool` it becomes
-  read only. `--all-read-tools` sets `readTools` to `null` by name, so it is the only option needed for a token with
-  every read tool and nothing else; it is mutually exclusive with `--read-tool` and `--no-read-tools`. Unlike `create` it checks the permissions of the owner of the token, and it refuses a revoked or expired
+  replaces the three tool lists of a token of any user. With any tool option it needs exactly one of `--read-tool`,
+  `--no-read-tools` and `--all-read-tools`, otherwise it saves nothing and fails: the new lists replace the old ones,
+  so an operator who adds a write tool must also say which read tools stay. `--all-read-tools` sets `readTools` to
+  `null`, so it is the only option needed for a token with every read tool and nothing else. Without
+  `--explicit-read-tool` the token loses its `explicitGrant` tools, without `--write-tool` it becomes read only. Unlike `create` it checks the permissions of the owner of the token, and it refuses a revoked or expired
   token. It prints the previous and the new tools. Run in a terminal without any of these options, it shows the token,
   offers the tools the owner may grant and asks for the read tools (`all`, `selected` or `none`), the explicit read
   tools and the write tools, with the current choice as the default answer. A list is answered with numbers or names

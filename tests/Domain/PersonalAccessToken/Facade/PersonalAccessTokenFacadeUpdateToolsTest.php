@@ -23,7 +23,7 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
             userId: UserFixtures::TOKEN_MANAGER_ID,
             writeTools: [ExampleTool::WRITE],
             explicitReadTools: [ExampleTool::EXPLICIT_READ],
-        );
+        )->personalAccessToken;
 
         $result = $this->getFacade()
             ->updateTools($personalAccessToken, $this->createDto([ExampleTool::READ], []));
@@ -64,7 +64,7 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
         array $explicitReadTools,
         array $writeTools,
     ): void {
-        $personalAccessToken = $this->createToken($ownerId);
+        $personalAccessToken = $this->createToken($ownerId)->personalAccessToken;
 
         $this->getFacade()
             ->updateTools($personalAccessToken, $this->createDto(
@@ -133,7 +133,7 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
         array $writeTools,
         array $expectedErrors,
     ): void {
-        $personalAccessToken = $this->createToken($ownerId);
+        $personalAccessToken = $this->createToken($ownerId)->personalAccessToken;
 
         try {
             $this->getFacade()
@@ -197,7 +197,7 @@ final class PersonalAccessTokenFacadeUpdateToolsTest extends AbstractKernelTestC
             userId: UserFixtures::TOKEN_MANAGER_ID,
             writeTools: [ExampleTool::WRITE],
             readTools: [ExampleTool::READ],
-        );
+        )->personalAccessToken;
         if ($expired) {
             $personalAccessToken->setExpiresAt(new DateTimeImmutable(self::EXPIRED_AT));
             $this->getEntityManager()

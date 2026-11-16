@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace AnzuSystems\AuthBundle\Tests\Controller;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Facade\PersonalAccessTokenFacade;
-use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenCreateResult;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
 use AnzuSystems\AuthBundle\Tests\Data\Fixtures\UserFixtures;
@@ -14,7 +13,6 @@ use AnzuSystems\AuthBundle\Tests\LogAssertionsTrait;
 use AnzuSystems\CommonBundle\Exception\ValidationException;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
-use LogicException;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +30,6 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
     private const string EXPIRED_AT = '-1 year';
     private const string STATE_REVOKED = 'revoked';
     private const string STATE_EXPIRED = 'expired';
-    private const string TOKEN_NAME = 'Example token';
     private const string SERIALIZER_ERROR = 'serializer_error';
     private const string UNKNOWN_TOOL = 'example_unknown';
     private const int NON_EXISTENT_TOKEN_ID = 999_999;
@@ -207,6 +204,17 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
             ['name' => ''],
             ['name' => [ValidationException::ERROR_FIELD_EMPTY]],
         ];
+    }
+
+    public function testCreateRefusesExplicitReadToolsSentAsNull(): void
+    {
+        $this->loginUser(UserFixtures::TOKEN_MANAGER_ID);
+
+        $response = $this->requestJson(Request::METHOD_POST, self::URI, ['name' => self::TOKEN_NAME, 'explicitReadTools' => null]);
+
+        self::assertResponseStatusCodeSame(Response::HTTP_BAD_REQUEST);
+        self::assertSame(self::SERIALIZER_ERROR, $response['error']);
+        self::assertCount(0, $this->getRepository()->findByUser($this->getUser(UserFixtures::TOKEN_MANAGER_ID)));
     }
 
     public function testGetList(): void
@@ -844,26 +852,6 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
     }
 
     /**
-     * @param list<string> $writeTools
-     * @param list<string>|null $readTools
-     * @param list<string> $explicitReadTools
-     */
-    private function createToken(
-        int $userId,
-        array $writeTools = [],
-        ?array $readTools = null,
-        array $explicitReadTools = [],
-    ): PersonalAccessTokenCreateResult {
-        return self::getContainer()->get(PersonalAccessTokenFacade::class)->create(
-            user: $this->getUser($userId),
-            name: self::TOKEN_NAME,
-            writeTools: $writeTools,
-            readTools: $readTools,
-            explicitReadTools: $explicitReadTools,
-        );
-    }
-
-    /**
      * @param list<string> $expectedWriteTools
      * @param list<string>|null $expectedReadTools
      */
@@ -872,18 +860,6 @@ final class PersonalAccessTokenControllerTest extends AbstractControllerTestCase
         $storedToken = $this->getStoredToken($tokenId);
         self::assertSame($expectedWriteTools, $storedToken->getWriteTools());
         self::assertSame($expectedReadTools, $storedToken->getReadTools());
-    }
-
-    private function getStoredToken(int $tokenId): AbstractPersonalAccessToken
-    {
-        self::getContainer()->get(EntityManagerInterface::class)->clear();
-        $personalAccessToken = $this->getRepository()
-            ->find($tokenId);
-        if ($personalAccessToken instanceof AbstractPersonalAccessToken) {
-            return $personalAccessToken;
-        }
-
-        throw new LogicException(sprintf('Personal access token "%d" is not stored.', $tokenId));
     }
 
     private function getRepository(): PersonalAccessTokenRepository

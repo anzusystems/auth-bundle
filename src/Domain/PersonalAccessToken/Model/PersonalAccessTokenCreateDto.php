@@ -28,10 +28,10 @@ final class PersonalAccessTokenCreateDto
     private ?array $readTools = null;
 
     /**
-     * @var list<string>|null
+     * @var list<string>
      */
     #[Serialize]
-    private ?array $explicitReadTools = null;
+    private array $explicitReadTools = [];
 
     public function getName(): string
     {
@@ -98,13 +98,13 @@ final class PersonalAccessTokenCreateDto
      */
     public function getExplicitReadTools(): array
     {
-        return $this->explicitReadTools ?? [];
+        return $this->explicitReadTools;
     }
 
     /**
-     * @param list<string>|null $explicitReadTools
+     * @param list<string> $explicitReadTools
      */
-    public function setExplicitReadTools(?array $explicitReadTools): self
+    public function setExplicitReadTools(array $explicitReadTools): self
     {
         $this->explicitReadTools = $explicitReadTools;
 

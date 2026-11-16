@@ -31,6 +31,7 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
     private const int USER_ID = 42;
     private const string FIREWALL_NAME = 'main';
     private const string READ_TOOL = 'example_read';
+    private const string EXPLICIT_READ_TOOL = 'example_explicit_read';
     private const string WRITE_TOOL = 'example_write';
 
     private PersonalAccessTokenAuthenticator $authenticator;
@@ -96,13 +97,32 @@ final class PersonalAccessTokenAuthenticatorTest extends TestCase
         $this->storedToken = new PersonalAccessToken()
             ->setUser($user)
             ->setReadTools([self::READ_TOOL])
+            ->setExplicitReadTools([self::EXPLICIT_READ_TOOL])
             ->setWriteTools([self::WRITE_TOOL]);
 
         $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
 
         self::assertSame($user, $passport->getUser());
         self::assertEquals(
-            new McpToolScope(readToolNames: [self::READ_TOOL], writeToolNames: [self::WRITE_TOOL]),
+            new McpToolScope(
+                readToolNames: [self::READ_TOOL],
+                writeToolNames: [self::WRITE_TOOL],
+                explicitToolNames: [self::EXPLICIT_READ_TOOL],
+            ),
+            $passport->getAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE),
+        );
+    }
+
+    public function testAuthenticateKeepsEveryReadToolNextToAnExplicitReadTool(): void
+    {
+        $this->storedToken = new PersonalAccessToken()
+            ->setUser($this->createUser(enabled: true))
+            ->setExplicitReadTools([self::EXPLICIT_READ_TOOL]);
+
+        $passport = $this->authenticator->authenticate($this->createRequest('Bearer ' . self::PLAIN_TOKEN));
+
+        self::assertEquals(
+            new McpToolScope(explicitToolNames: [self::EXPLICIT_READ_TOOL]),
             $passport->getAttribute(PersonalAccessTokenAuthenticator::TOOL_SCOPE_ATTRIBUTE),
         );
     }

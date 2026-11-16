@@ -21,6 +21,7 @@ use Symfony\Component\Validator\Validation;
 final class PersonalAccessTokenToolsValidatorTest extends TestCase
 {
     private const string READ_TOOL = 'example_read';
+    private const string EXPLICIT_READ_TOOL = 'example_explicit_read';
     private const string WRITE_TOOL = 'example_write';
     private const string PREVIEW_TOOL = 'example_preview';
     private const string UNKNOWN_TOOL = 'example_unknown';
@@ -33,7 +34,7 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
     #[DataProvider('toolsDataProvider')]
     public function testOnlyConfiguredToolsOfTheRightKindAreValid(
         bool $mcpEnabled,
-        bool $writeTools,
+        PersonalAccessTokenTools $constraint,
         ?array $tools,
         array $expectedMessages,
     ): void {
@@ -42,7 +43,7 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
                 PersonalAccessTokenToolsValidator::class => new PersonalAccessTokenToolsValidator($this->createResolver($mcpEnabled)),
             ]))
             ->getValidator()
-            ->validate($tools, new PersonalAccessTokenTools(writeTools: $writeTools));
+            ->validate($tools, $constraint);
 
         self::assertSame(
             $expectedMessages,
@@ -54,25 +55,36 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
     }
 
     /**
-     * @return array<string, array{0: bool, 1: bool, 2: list<string>|null, 3: list<string>}>
+     * @return array<string, array{0: bool, 1: PersonalAccessTokenTools, 2: list<string>|null, 3: list<string>}>
      */
     public static function toolsDataProvider(): array
     {
         $invalid = [ValidationException::ERROR_FIELD_INVALID];
+        $readTools = new PersonalAccessTokenTools();
+        $explicitTools = new PersonalAccessTokenTools(explicitTools: true);
+        $writeTools = new PersonalAccessTokenTools(writeTools: true);
 
         return [
-            'all read tools' => [true, false, null, []],
-            'no read tool' => [true, false, [], []],
-            'read tool' => [true, false, [self::READ_TOOL], []],
-            'write tool among the read tools' => [true, false, [self::WRITE_TOOL], $invalid],
-            'preview among the read tools' => [true, false, [self::PREVIEW_TOOL], $invalid],
-            'unknown read tool' => [true, false, [self::UNKNOWN_TOOL], $invalid],
-            'read tool without mcp' => [false, false, [self::READ_TOOL], $invalid],
-            'no write tool' => [true, true, [], []],
-            'write tool' => [true, true, [self::WRITE_TOOL], []],
-            'read tool among the write tools' => [true, true, [self::READ_TOOL], $invalid],
-            'unknown write tool' => [true, true, [self::UNKNOWN_TOOL], $invalid],
-            'write tool without mcp' => [false, true, [self::WRITE_TOOL], $invalid],
+            'all read tools' => [true, $readTools, null, []],
+            'no read tool' => [true, $readTools, [], []],
+            'read tool' => [true, $readTools, [self::READ_TOOL], []],
+            'explicit read tool among the read tools' => [true, $readTools, [self::EXPLICIT_READ_TOOL], $invalid],
+            'write tool among the read tools' => [true, $readTools, [self::WRITE_TOOL], $invalid],
+            'preview among the read tools' => [true, $readTools, [self::PREVIEW_TOOL], $invalid],
+            'unknown read tool' => [true, $readTools, [self::UNKNOWN_TOOL], $invalid],
+            'read tool without mcp' => [false, $readTools, [self::READ_TOOL], $invalid],
+            'no explicit read tool' => [true, $explicitTools, [], []],
+            'explicit read tool' => [true, $explicitTools, [self::EXPLICIT_READ_TOOL], []],
+            'read tool among the explicit read tools' => [true, $explicitTools, [self::READ_TOOL], $invalid],
+            'write tool among the explicit read tools' => [true, $explicitTools, [self::WRITE_TOOL], $invalid],
+            'unknown explicit read tool' => [true, $explicitTools, [self::UNKNOWN_TOOL], $invalid],
+            'explicit read tool without mcp' => [false, $explicitTools, [self::EXPLICIT_READ_TOOL], $invalid],
+            'no write tool' => [true, $writeTools, [], []],
+            'write tool' => [true, $writeTools, [self::WRITE_TOOL], []],
+            'read tool among the write tools' => [true, $writeTools, [self::READ_TOOL], $invalid],
+            'explicit read tool among the write tools' => [true, $writeTools, [self::EXPLICIT_READ_TOOL], $invalid],
+            'unknown write tool' => [true, $writeTools, [self::UNKNOWN_TOOL], $invalid],
+            'write tool without mcp' => [false, $writeTools, [self::WRITE_TOOL], $invalid],
         ];
     }
 
@@ -84,6 +96,7 @@ final class PersonalAccessTokenToolsValidatorTest extends TestCase
 
         $toolDefinitions = new McpToolDefinitions([
             self::READ_TOOL => new McpToolDefinition(permission: self::PERMISSION, readOnly: true),
+            self::EXPLICIT_READ_TOOL => new McpToolDefinition(permission: self::PERMISSION, readOnly: true, explicitGrant: true),
             self::WRITE_TOOL => new McpToolDefinition(permission: self::PERMISSION, previewTool: self::PREVIEW_TOOL),
             self::PREVIEW_TOOL => new McpToolDefinition(readOnly: true, previewOf: self::WRITE_TOOL),
         ]);

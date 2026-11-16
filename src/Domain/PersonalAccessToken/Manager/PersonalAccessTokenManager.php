@@ -28,6 +28,22 @@ final class PersonalAccessTokenManager extends AbstractManager
         return $personalAccessToken;
     }
 
+    public function updateTools(
+        AbstractPersonalAccessToken $personalAccessToken,
+        AbstractPersonalAccessToken $newPersonalAccessToken,
+        bool $flush = true,
+    ): AbstractPersonalAccessToken {
+        $this->trackModification($personalAccessToken);
+        $personalAccessToken
+            ->setWriteTools($newPersonalAccessToken->getWriteTools())
+            ->setReadTools($newPersonalAccessToken->getReadTools())
+            ->setExplicitReadTools($newPersonalAccessToken->getExplicitReadTools())
+        ;
+        $this->flush($flush);
+
+        return $personalAccessToken;
+    }
+
     public function delete(AbstractPersonalAccessToken $personalAccessToken, bool $flush = true): void
     {
         $this->entityManager->remove($personalAccessToken);

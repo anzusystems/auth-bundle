@@ -24,9 +24,7 @@ final class PersonalAccessTokenToolsValidator extends ConstraintValidator
             return;
         }
 
-        $toolNames = $constraint->writeTools
-            ? $this->toolResolver->resolveWriteToolNames()
-            : $this->toolResolver->resolveReadToolNames();
+        $toolNames = $this->resolveToolNames($constraint);
         $hasUnknownTool = array_any(
             $value,
             static fn (mixed $toolName): bool => false === in_array(needle: $toolName, haystack: $toolNames, strict: true),
@@ -34,5 +32,20 @@ final class PersonalAccessTokenToolsValidator extends ConstraintValidator
         if ($hasUnknownTool) {
             $this->context->addViolation($constraint->message);
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveToolNames(PersonalAccessTokenTools $constraint): array
+    {
+        if ($constraint->writeTools) {
+            return $this->toolResolver->resolveWriteToolNames();
+        }
+        if ($constraint->explicitTools) {
+            return $this->toolResolver->resolveExplicitReadToolNames();
+        }
+
+        return $this->toolResolver->resolveReadToolNames();
     }
 }

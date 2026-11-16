@@ -27,6 +27,8 @@ final class AbstractPersonalAccessTokenTest extends TestCase
 
         self::assertFalse($personalAccessToken->isRevoked());
         self::assertSame([], $personalAccessToken->getWriteTools());
+        self::assertNull($personalAccessToken->getReadTools());
+        self::assertSame([], $personalAccessToken->getExplicitReadTools());
         self::assertGreaterThan(new DateTimeImmutable('+1 month'), $personalAccessToken->getExpiresAt());
         self::assertLessThanOrEqual(new DateTimeImmutable(AbstractPersonalAccessToken::MAX_EXPIRES_AT_DATE), $personalAccessToken->getExpiresAt());
     }

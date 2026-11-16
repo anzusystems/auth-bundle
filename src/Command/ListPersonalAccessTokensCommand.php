@@ -6,7 +6,6 @@ namespace AnzuSystems\AuthBundle\Command;
 
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Repository\PersonalAccessTokenRepository;
 use AnzuSystems\AuthBundle\Entity\AbstractPersonalAccessToken;
-use AnzuSystems\Contracts\AnzuApp;
 use AnzuSystems\Contracts\Entity\AnzuUser;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -21,13 +20,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 final class ListPersonalAccessTokensCommand extends Command
 {
-    private const array HEADERS = ['Id', 'Name', 'Status', 'Expires at', 'Last used at', 'Read tools', 'Write tools'];
+    private const array HEADERS = ['Id', 'Name', 'Status', 'Expires at', 'Last used at', 'Read tools', 'Explicit read tools', 'Write tools'];
     public const string STATUS_ACTIVE = 'active';
     public const string STATUS_EXPIRED = 'expired';
     public const string STATUS_REVOKED = 'revoked';
     private const string NO_VALUE = '-';
-    private const string LIST_SEPARATOR = ', ';
-    private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     /**
      * @param class-string<AnzuUser> $userEntityClass
@@ -59,8 +56,9 @@ final class ListPersonalAccessTokensCommand extends Command
                 $this->resolveStatus($token),
                 $this->formatDate($token->getExpiresAt()),
                 $this->formatDate($token->getLastUsedAt()),
-                $this->formatReadTools($token->getReadTools()),
-                $this->formatTools($token->getWriteTools()),
+                CreatePersonalAccessTokenCommand::formatReadTools($token->getReadTools()),
+                CreatePersonalAccessTokenCommand::formatTools($token->getExplicitReadTools()),
+                CreatePersonalAccessTokenCommand::formatTools($token->getWriteTools()),
             ]
         )->toArray());
 
@@ -72,8 +70,7 @@ final class ListPersonalAccessTokensCommand extends Command
         if ($token->isRevoked()) {
             return self::STATUS_REVOKED;
         }
-        $expiresAt = $token->getExpiresAt();
-        if ($expiresAt instanceof DateTimeImmutable && $expiresAt <= AnzuApp::date()) {
+        if ($token->isExpired()) {
             return self::STATUS_EXPIRED;
         }
 
@@ -82,30 +79,6 @@ final class ListPersonalAccessTokensCommand extends Command
 
     private function formatDate(?DateTimeImmutable $date): string
     {
-        return $date?->format(self::DATETIME_FORMAT) ?? self::NO_VALUE;
-    }
-
-    /**
-     * @param list<string>|null $readTools
-     */
-    private function formatReadTools(?array $readTools): string
-    {
-        if (null === $readTools) {
-            return CreatePersonalAccessTokenCommand::READ_TOOLS_UNRESTRICTED;
-        }
-
-        return $this->formatTools($readTools);
-    }
-
-    /**
-     * @param list<string> $tools
-     */
-    private function formatTools(array $tools): string
-    {
-        if (empty($tools)) {
-            return CreatePersonalAccessTokenCommand::TOOLS_NONE;
-        }
-
-        return implode(self::LIST_SEPARATOR, $tools);
+        return $date?->format(CreatePersonalAccessTokenCommand::DATETIME_FORMAT) ?? self::NO_VALUE;
     }
 }

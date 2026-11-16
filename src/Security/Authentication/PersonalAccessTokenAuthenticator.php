@@ -80,6 +80,7 @@ final class PersonalAccessTokenAuthenticator extends AbstractAuthenticator imple
             new McpToolScope(
                 readToolNames: $personalAccessToken->getReadTools(),
                 writeToolNames: $personalAccessToken->getWriteTools(),
+                explicitToolNames: $personalAccessToken->getExplicitReadTools(),
             ),
         );
 

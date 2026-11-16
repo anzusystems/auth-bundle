@@ -30,8 +30,8 @@ final class CreatePersonalAccessTokenCommand extends Command
     private const string LIST_SEPARATOR = ', ';
     public const string TOOLS_NONE = 'none';
     public const string READ_TOOLS_UNRESTRICTED = 'all the user may use, except tools granted only by name';
-    private const string EXPIRES_AT_NEVER = 'never';
-    private const string DATETIME_FORMAT = 'Y-m-d H:i:s';
+    public const string EXPIRES_AT_NEVER = 'never';
+    public const string DATETIME_FORMAT = 'Y-m-d H:i:s';
 
     /**
      * @param class-string<AnzuUser> $userEntityClass
@@ -47,6 +47,7 @@ final class CreatePersonalAccessTokenCommand extends Command
     /**
      * @param list<string> $writeTools
      * @param list<string> $readTools
+     * @param list<string> $explicitReadTools
      *
      * @throws AppReadOnlyModeException
      * @throws RandomException
@@ -73,6 +74,11 @@ final class CreatePersonalAccessTokenCommand extends Command
             name: 'read-tool',
         )]
         array $readTools = [],
+        #[Option(
+            description: 'Name of an MCP read tool granted only by name, repeat the option to grant more tools. Without it the token gets none of them.',
+            name: 'explicit-read-tool',
+        )]
+        array $explicitReadTools = [],
         #[Option(description: 'Give the token no read tool (mutually exclusive with --read-tool).')]
         bool $noReadTools = false,
     ): int {
@@ -124,6 +130,7 @@ final class CreatePersonalAccessTokenCommand extends Command
                 neverExpires: $neverExpires,
                 writeTools: $writeTools,
                 readTools: $resolvedReadTools,
+                explicitReadTools: $explicitReadTools,
             );
         } catch (ValidationException $exception) {
             $io->writeln(sprintf(
@@ -140,36 +147,34 @@ final class CreatePersonalAccessTokenCommand extends Command
             'Expires at: %s',
             $token->getExpiresAt()?->format(self::DATETIME_FORMAT) ?? self::EXPIRES_AT_NEVER,
         ));
-        $io->writeln(sprintf('Write tools: %s', $this->formatWriteTools($token->getWriteTools())));
-        $io->writeln(sprintf('Read tools: %s', $this->formatReadTools($token->getReadTools())));
+        $io->writeln(sprintf('Write tools: %s', self::formatTools($token->getWriteTools())));
+        $io->writeln(sprintf('Read tools: %s', self::formatReadTools($token->getReadTools())));
+        $io->writeln(sprintf('Explicit read tools: %s', self::formatTools($token->getExplicitReadTools())));
 
         return self::SUCCESS;
     }
 
     /**
-     * @param list<string> $writeTools
+     * @param list<string> $tools
      */
-    private function formatWriteTools(array $writeTools): string
+    public static function formatTools(array $tools): string
     {
-        if (empty($writeTools)) {
+        if (empty($tools)) {
             return self::TOOLS_NONE;
         }
 
-        return implode(self::LIST_SEPARATOR, $writeTools);
+        return implode(self::LIST_SEPARATOR, $tools);
     }
 
     /**
      * @param list<string>|null $readTools
      */
-    private function formatReadTools(?array $readTools): string
+    public static function formatReadTools(?array $readTools): string
     {
         if (null === $readTools) {
             return self::READ_TOOLS_UNRESTRICTED;
         }
-        if (empty($readTools)) {
-            return self::TOOLS_NONE;
-        }
 
-        return implode(self::LIST_SEPARATOR, $readTools);
+        return self::formatTools($readTools);
     }
 }

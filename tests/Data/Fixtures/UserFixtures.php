@@ -23,6 +23,7 @@ final class UserFixtures extends AbstractFixtures
     public const int WITHOUT_CREATE_ROLE_ID = 12;
     public const int WITHOUT_PERMISSIONS_ID = 13;
     public const int DISABLED_ID = 14;
+    public const int SUPER_ADMIN_ID = 15;
 
     public const string TOKEN_MANAGER_EMAIL = 'token.manager@example.com';
     public const string DISABLED_EMAIL = 'disabled@example.com';
@@ -88,6 +89,8 @@ final class UserFixtures extends AbstractFixtures
                 ->setRoles(self::CREATE_ROLES)
                 ->setPermissions(self::TOKEN_PERMISSIONS + self::WRITE_TOOLS_PERMISSION)
                 ->setEnabled(false),
+            $this->createUser(self::SUPER_ADMIN_ID, 'super.admin@example.com')
+                ->setRoles([User::ROLE_USER, User::ROLE_SUPER_ADMIN]),
         ];
         foreach ($users as $user) {
             yield $user

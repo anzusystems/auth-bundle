@@ -9,6 +9,7 @@ use AnzuSystems\AuthBundle\Command\CreatePersonalAccessTokenCommand;
 use AnzuSystems\AuthBundle\Command\ListPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Command\NotifyExpiringPersonalAccessTokensCommand;
 use AnzuSystems\AuthBundle\Command\RevokePersonalAccessTokenCommand;
+use AnzuSystems\AuthBundle\Command\UpdatePersonalAccessTokenToolsCommand;
 use AnzuSystems\AuthBundle\Configuration\OAuth2Configuration;
 use AnzuSystems\AuthBundle\Contracts\OAuth2AuthUserRepositoryInterface;
 use AnzuSystems\AuthBundle\Contracts\PersonalAccessTokenExpiryNotifierInterface;
@@ -265,6 +266,12 @@ final class AnzuSystemsAuthExtension extends Extension
 
         $container
             ->register(RevokePersonalAccessTokenCommand::class)
+            ->setAutowired(true)
+            ->setAutoconfigured(true)
+        ;
+
+        $container
+            ->register(UpdatePersonalAccessTokenToolsCommand::class)
             ->setAutowired(true)
             ->setAutoconfigured(true)
         ;

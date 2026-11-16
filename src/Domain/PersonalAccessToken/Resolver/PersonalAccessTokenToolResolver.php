@@ -7,6 +7,7 @@ namespace AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Resolver;
 use AnzuSystems\AuthBundle\Domain\PersonalAccessToken\Model\PersonalAccessTokenTool;
 use AnzuSystems\CommonBundle\Mcp\McpToolDefinitions;
 use AnzuSystems\CommonBundle\Mcp\Security\McpToolAccessChecker;
+use AnzuSystems\Contracts\Entity\AnzuUser;
 
 final readonly class PersonalAccessTokenToolResolver
 {
@@ -21,12 +22,18 @@ final readonly class PersonalAccessTokenToolResolver
      */
     public function resolveReadToolNames(): array
     {
-        $toolDefinitions = $this->toolDefinitions;
-        if (null === $toolDefinitions) {
-            return [];
-        }
+        return array_filter(
+            $this->resolveAllReadToolNames(),
+            fn (string $toolName): bool => false === $this->isExplicitGrantTool($toolName),
+        ) |> array_values(...);
+    }
 
-        return array_diff($toolDefinitions->getToolNames(), $toolDefinitions->getWriteToolNames()) |> array_values(...);
+    /**
+     * @return list<string>
+     */
+    public function resolveExplicitReadToolNames(): array
+    {
+        return array_filter($this->resolveAllReadToolNames(), $this->isExplicitGrantTool(...)) |> array_values(...);
     }
 
     /**
@@ -43,6 +50,14 @@ final readonly class PersonalAccessTokenToolResolver
     public function resolveGrantableToolNames(): array
     {
         return $this->toolAccessChecker?->getPermittedToolNames() ?? [];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function resolveGrantableToolNamesForUser(AnzuUser $user): array
+    {
+        return $this->toolAccessChecker?->getPermittedToolNamesForUser($user) ?? [];
     }
 
     /**
@@ -73,5 +88,23 @@ final readonly class PersonalAccessTokenToolResolver
             ),
             $toolNames,
         );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveAllReadToolNames(): array
+    {
+        $toolDefinitions = $this->toolDefinitions;
+        if (null === $toolDefinitions) {
+            return [];
+        }
+
+        return array_diff($toolDefinitions->getToolNames(), $toolDefinitions->getWriteToolNames()) |> array_values(...);
+    }
+
+    private function isExplicitGrantTool(string $toolName): bool
+    {
+        return true === $this->toolDefinitions?->find($toolName)?->explicitGrant;
     }
 }
